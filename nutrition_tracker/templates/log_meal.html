@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <h2 class="mb-4">Log Your Meal</h2>
+        <form method="POST" action="{{ url_for('log_meal') }}" enctype="multipart/form-data">
+            <!-- Mother ID is now handled through session -->
+            <div class="mb-3">
+                <label for="meal_type" class="form-label">Meal Type</label>
+                <select class="form-control" id="meal_type" name="meal_type" required>
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="meal_date" class="form-label">Meal Date</label>
+                <input type="date" class="form-control" id="meal_date" name="meal_date" required>
+            </div>
+            <div class="mb-3">
+                <label for="meal_image" class="form-label">Meal Photo</label>
+                <input type="file" class="form-control" id="meal_image" name="meal_image" accept="image/*">
+                <small class="text-muted">Upload a photo of your meal (optional)</small>
+            </div>
+            <button type="submit" class="btn btn-primary">Log Meal</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+.navbar {
+    margin-bottom: 2rem;
+}
+
+.card {
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+.alert {
+    margin-bottom: 2rem;
+}
+
+.img-thumbnail {
+    border-radius: 8px;
+}
+
+/* Risk status colors */
+.text-high {
+    color: #dc3545;
+}
+
+.text-medium {
+    color: #ffc107;
+}
+
+.text-normal {
+    color: #198754;
+}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h2 class="mb-4">Your Meal History</h2>
+        <div class="mb-3">
+            <form method="GET" action="{{ url_for('history') }}" class="row g-3">
+                <div class="col-auto">
+                    <input type="text" class="form-control" id="mother_id" name="mother_id" placeholder="Enter your ID" required>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">View History</button>
+                </div>
+            </form>
+        </div>
+        
+        {% if meals %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Nutrition Summary</h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6>Average Calories</h6>
+                            <p>{{ avg_calories }} kcal</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Average Protein</h6>
+                            <p>{{ avg_protein }}g</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Risk Status</h6>
+                            <p class="text-{{ 'danger' if risk_status == 'high' else 'warning' if risk_status == 'medium' else 'success' }}">
+                                {{ risk_status|title }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Meal Type</th>
+                        <th>Calories</th>
+                        <th>Protein</th>
+                        <th>Photo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for meal in meals %}
+                    <tr>
+                        <td>{{ meal.meal_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ meal.meal_type|title }}</td>
+                        <td>{{ meal.nutrients.kcal }}</td>
+                        <td>{{ meal.nutrients.protein_g }}g</td>
+                        <td>
+                            {% if meal.image_url %}
+                            <img src="{{ meal.image_url }}" alt="Meal photo" class="img-thumbnail" style="max-width: 100px">
+                            {% else %}
+                            No photo
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% elif mother_id %}
+            <div class="alert alert-info">No meals found for this ID.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

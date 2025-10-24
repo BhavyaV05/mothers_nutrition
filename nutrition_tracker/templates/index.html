@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2 text-center">
+        <h1 class="mb-4">Welcome to Mother Nutrition Tracker</h1>
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Register</h5>
+                        <p class="card-text">New mother? Register here to start tracking your nutrition.</p>
+                        <a href="{{ url_for('register') }}" class="btn btn-primary">Register Now</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Log Meal</h5>
+                        <p class="card-text">Record your daily meals and get nutrition insights.</p>
+                        <a href="{{ url_for('log_meal') }}" class="btn btn-primary">Log Meal</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">View History</h5>
+                        <p class="card-text">Check your nutrition history and progress.</p>
+                        <a href="{{ url_for('history') }}" class="btn btn-primary">View History</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
