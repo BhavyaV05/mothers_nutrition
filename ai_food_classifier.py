@@ -1,4 +1,3 @@
-# gemini_food_classifier.py
 import os
 import json
 import pandas as pd
@@ -29,10 +28,10 @@ else:
 # -----------------------------
 # Gemini prompt template
 # -----------------------------
-PROMPT_TEMPLATE = """Given the Indian dish name: "{food}".
+PROMPT_TEMPLATE = """Given the Indian food dish name: "{food}".
 Classify it as follows:
-1. List of Indian states or UTs where this food is commonly consumed.
-2. Whether it is more popular in rural, urban, or both areas.
+1. List of Indian states or UTs where this food is commonly available or popular.
+2. Whether it is mainly rural, urban, or both.
 3. The dietary category it fits best: [Vegetarian, Non-Vegetarian, Eggitarian].
 4. The typical income ranges that can afford this food: ["<1L","1-3L","3-6L",">6L"].
 
@@ -55,8 +54,7 @@ def classify_food(food_name: str):
         response = genai.GenerativeModel("gemini-1.5-flash").generate_content(
             PROMPT_TEMPLATE.format(food=food_name)
         )
-        text = response.text.strip()
-        result = json.loads(text)
+        result = json.loads(response.text.strip())
         CACHE[food_name] = result
         with open(CACHE_FILE, "w") as f:
             json.dump(CACHE, f, indent=2)
@@ -72,18 +70,20 @@ def classify_food(food_name: str):
         }
 
 # -----------------------------
-# Run classifier
+# Main process
 # -----------------------------
 def main():
     df = pd.read_csv(INPUT_CSV)
-    results = []
+    df.columns = df.columns.str.strip()
+    FOOD_COL = "Dish Name"
 
-    for food in tqdm(df["Food_Item"], desc="Classifying foods"):
+    results = []
+    for food in tqdm(df[FOOD_COL].dropna(), desc="Classifying foods"):
         res = classify_food(food)
         results.append(res)
 
     meta_df = pd.DataFrame(results)
-    final_df = pd.concat([df, meta_df], axis=1)
+    final_df = pd.concat([df.reset_index(drop=True), meta_df], axis=1)
     final_df.to_csv(OUTPUT_CSV, index=False)
     print(f"\n✅ Saved enriched dataset to {OUTPUT_CSV}")
 
