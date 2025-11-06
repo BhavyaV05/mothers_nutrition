@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* General body/container style */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7fa; /* Light background */
+        color: #333;
+        line-height: 1.6;
+    }
+
+    /* Card styling for sections */
+    .card {
+        background-color: #ffffff;
+        border: none;
+        border-radius: 12px; /* Smoother corners */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+        padding: 24px;
+        margin-bottom: 24px;
+        transition: transform 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px); /* Slight lift on hover */
+    }
+
+    /* Headings */
+    h2, h3 {
+        color: #007bff; /* Primary blue color */
+        border-bottom: 2px solid #e9ecef; /* Light separator */
+        padding-bottom: 8px;
+        margin-top: 0;
+        margin-bottom: 16px;
+    }
+
+    /* Form labels and inputs */
+    label {
+        display: block;
+        margin-top: 12px;
+        margin-bottom: 4px;
+        font-weight: 600; /* Bolder labels */
+        color: #555;
+    }
+
+    input:not([type="file"]), select, button {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        box-sizing: border-box; /* Include padding in width */
+        font-size: 16px;
+        transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+        border-color: #007bff; /* Highlight on focus */
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    /* Button styling */
+    button {
+        cursor: pointer;
+        background-color: #007bff; /* Primary action color */
+        color: white;
+        border: none;
+        font-weight: bold;
+        transition: background-color 0.2s;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+    /* Secondary button for Refresh History */
+    #refreshHistory {
+        background-color: #6c757d; /* Muted gray/secondary color */
+        margin-bottom: 16px;
+    }
+
+    #refreshHistory:hover {
+        background-color: #5a6268;
+    }
+
+    /* Alert Box Styling (Redesigned) */
+    #alertBox {
+        background: #fff0f0; /* Very light red background */
+        border: 2px solid #ff4d4d; /* Stronger red border */
+        color: #cc0000; /* Darker red text */
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        font-size: 1.1em;
+        display: flex !important; /* Use flex for better alignment */
+        align-items: flex-start;
+    }
+
+    #alertBox strong {
+        font-size: 1.2em;
+        margin-right: 10px;
+        color: #cc0000; /* Ensure icon/title is visible */
+    }
+
+    #alertText {
+        margin-top: 0;
+        flex-grow: 1; /* Allows text to take up space */
+    }
+
+    /* Upload Result Styling */
+    #resultArea, #mealHistory {
+        background-color: #f8f9fa; /* Light gray background for content areas */
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px dashed #e9ecef;
+    }
+
+    /* Meal History Item Styling */
+    .meal-item {
+        border-bottom: 1px solid #e9ecef;
+        padding: 12px 0;
+    }
+
+    .meal-item:last-child {
+        border-bottom: none; /* No border for the last item */
+    }
+
+    .meal-item strong {
+        color: #007bff;
+        font-size: 1.1em;
+    }
+
+    /* Preformatted text inside results */
+    pre {
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 6px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 0.9em;
+    }
+</style>
+
+<div id="alertBox"
+     style="display:none;">
+    <strong>⚠️ Nutrient Alert:</strong>
+    <div id="alertText"></div>
+</div>
+
+---
+<div class="card">
+    <h3>Remaining Nutrients for Today</h3>
+    <div id="remainingNutrients"><em>Loading...</em></div>
+</div>
+
+
+<div class="card">
+    <h2>Upload Meal Photo</h2>
+    <p>Upload your meal photo, select the meal type and date. The system will analyze your meal and compare it with your doctor's plan.</p>
+
+    <form id="uploadForm">
+        <label for="motherId">Mother ID</label>
+        <input id="motherId" name="motherId" placeholder="Enter Mother ID" value="m_1" required />
+
+        <label for="mealType">Meal Type</label>
+        <select id="mealType" name="mealType" required>
+            <option value="">-- Select Meal --</option>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snack">Snack</option>
+        </select>
+
+        <label for="mealDate">Meal Date</label>
+        <input id="mealDate" name="mealDate" type="date" required />
+
+        <label for="image">Meal Image</label>
+        <input id="image" name="image" type="file" accept="image/*" required style="padding: 6px;"/> 
+
+        <button type="submit" style="margin-top:16px;">📸 Upload & Analyze Meal</button>
+    </form>
+</div>
+
+---
+
+<div class="card">
+    <h3>Upload Result</h3>
+    <div id="resultArea"><em>No upload yet.</em></div>
+</div>
+
+---
+
+<div class="card">
+    <h3>Your Meal History</h3>
+    <button id="refreshHistory">🔄 Refresh History</button>
+    <div id="mealHistory"><em>Loading...</em></div>
+</div>
+
+<script>
+// ---------- Load Meal History (Modified to use new CSS class) ----------
+// ---------- Load Remaining Nutrients ----------
+async function loadRemainingNutrients() {
+    const motherId = document.getElementById("motherId").value.trim();
+    if (!motherId) return;
+
+    try {
+        console.log("hahah");
+        const res = await fetch(`/api/nutrients/remaining/${motherId}`);
+        console.log(res);
+        const data = await res.json();
+
+        if (!data || !data.remaining) {
+            document.getElementById("remainingNutrients").innerHTML = "<em>No data available.</em>";
+            return;
+        }
+
+        const r = data.remaining;
+        const c = data.consumed;
+        const req = data.required;
+
+        document.getElementById("remainingNutrients").innerHTML = `
+            <table style="width:100%; border-collapse: collapse;">
+                <tr style="background-color:#f8f9fa;">
+                    <th style="text-align:left; padding:8px;">Nutrient</th>
+                    <th style="text-align:right; padding:8px;">Consumed</th>
+                    <th style="text-align:right; padding:8px;">Required</th>
+                    <th style="text-align:right; padding:8px;">Remaining</th>
+                </tr>
+                ${["kcal","protein","carbs","fat"].map(k => `
+                    <tr>
+                        <td style="padding:8px;">${k.toUpperCase()}</td>
+                        <td style="text-align:right; padding:8px;">${c[k] || 0}</td>
+                        <td style="text-align:right; padding:8px;">${req[k] || 0}</td>
+                        <td style="text-align:right; padding:8px; color:${r[k] <= 0 ? 'green' : 'red'};">
+                            ${r[k] > 0 ? r[k] : 0}
+                        </td>
+                    </tr>
+                `).join("")}
+            </table>
+        `;
+    } catch (err) {
+        document.getElementById("remainingNutrients").innerHTML = "<em>Failed to load.</em>";
+    }
+}
+
+async function loadMealHistory() {
+    const motherId = document.getElementById("motherId").value.trim();
+    if (!motherId) return;
+    try {
+        const res = await fetch(`/api/meals/mother/${motherId}`);
+        const meals = await res.json();
+        if (!Array.isArray(meals) || meals.length === 0) {
+            document.getElementById("mealHistory").innerHTML = "<em>No meals yet.</em>";
+            return;
+        }
+        let html = "";
+        meals.forEach((m) => {
+            const n = m.nutrients || {};
+            html += `
+                <div class="meal-item">
+                    <strong>${m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1)}</strong> — ${m.mealDate || "Date Unavailable"}<br/>
+                    Nutrients: 
+                    <span title="Kilocalories">**kcal**=${n.kcal||0}</span>, 
+                    <span title="Protein in grams">**protein**=${n.protein_g||0}g</span>, 
+                    <span title="Carbohydrates in grams">**carbs**=${n.carb_g||0}g</span>, 
+                    <span title="Fat in grams">**fat**=${n.fat_g||0}g</span>
+                    <br/>
+                    <small>Status: **${m.status}**</small>
+                </div>
+            `;
+        });
+        document.getElementById("mealHistory").innerHTML = html;
+    } catch (err) {
+        document.getElementById("mealHistory").innerHTML = "<em>Failed to load history.</em>";
+    }
+}
+
+// ---------- Load Nutrient Alerts (Unchanged logic) ----------
+async function loadAlerts() {
+    const motherId = document.getElementById("motherId").value.trim();
+    if (!motherId) return;
+    try {
+        const res = await fetch(`/api/alerts/${motherId}`);
+        const alerts = await res.json();
+        if (!alerts || alerts.length === 0) {
+            document.getElementById("alertBox").style.display = "none";
+            return;
+        }
+        const latest = alerts[0];
+        const deficits = latest.nutrient_deficit || {};
+        const lines = Object.entries(deficits).map(
+            ([k, v]) => `<li style="margin-left: 15px;">**${k.toUpperCase()}**: ${v.actual}/${v.required} (${v.percent}%)</li>`
+        );
+        document.getElementById("alertText").innerHTML = `
+            Low intake detected on **${latest.mealDate}** (Deficit vs. Required):<br/>
+            <ul style="padding-left: 0; list-style-type: none;">${lines.join("")}</ul>
+        `;
+        document.getElementById("alertBox").style.display = "flex"; // Changed to flex for new styling
+    } catch (err) {
+        // Silently fail if alerts can't load
+        document.getElementById("alertBox").style.display = "none";
+    }
+}
+
+// ---------- Handle Meal Upload (Unchanged logic) ----------
+document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const fd = new FormData(form);
+    document.getElementById("resultArea").innerHTML = "<em><div style='color: #007bff;'>Uploading and Analyzing... please wait.</div></em>";
+
+    try {
+        const res = await fetch("/api/meals/upload", { method: "POST", body: fd });
+        const data = await res.json();
+
+        if (!res.ok) {
+            document.getElementById("resultArea").innerHTML =
+                `<strong style='color: red;'>Upload Error (${res.status})</strong>
+                 <pre>` + JSON.stringify(data, null, 2) + "</pre>";
+            return;
+        }
+
+        // Display upload + OCR + nutrient check results
+        let html = `
+            <strong style="color: green;">✅ Upload Successful!</strong>
+            <br/>
+            <strong>Meal created:</strong>
+            <pre>${JSON.stringify(data.meal, null, 2)}</pre>
+            <strong>OCR Result:</strong>
+            <pre>${JSON.stringify(data.ocr_result, null, 2)}</pre>
+        `;
+        if (data.nutrient_check && data.nutrient_check.alert_created) {
+            html += `<strong style="color:#cc0000; display: block; margin-top: 10px;">⚠️ Nutrient Deficit Detected!</strong>
+                     <pre>${JSON.stringify(data.nutrient_check.deficits, null, 2)}</pre>`;
+        }
+        document.getElementById("resultArea").innerHTML = html;
+
+        // Refresh UI
+        loadMealHistory();
+        loadAlerts();
+
+    } catch (err) {
+        document.getElementById("resultArea").innerHTML =
+            "<pre style='color: red;'>❌ Upload failed: " + err.message + "</pre>";
+    }
+});
+// At the bottom of your existing script:
+window.addEventListener("load", () => {
+    loadMealHistory();
+    loadAlerts();
+    loadRemainingNutrients();  // 👈 added here
+});
+
+document.getElementById("refreshHistory").addEventListener("click", () => {
+    loadMealHistory();
+    loadRemainingNutrients();  // 👈 also refresh here
+});
+
+document.getElementById("refreshHistory").addEventListener("click", loadMealHistory);
+
+// ---------- Initialize on load (Unchanged logic) ----------
+window.addEventListener("load", () => {
+    loadMealHistory();
+    loadAlerts();
+});
+</script>
+
+{% endblock %}
