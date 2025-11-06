@@ -11,14 +11,38 @@
       input, textarea, select { width:100%; padding:8px; margin-top:4px; }
       pre { background:#f7f7f7; padding:12px; border-radius:6px; overflow:auto; }
     </style>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body>
-    <h1>Mother Nutrition Planner </h1>
+    <h1>Mother Nutrition Planner</h1>
     <nav>
-      <a href="/mother">Mother page</a> |
-      <a href="/doctor">Doctor page</a>
+      {% if session.get('user_id') %}
+        {% if session.get('role') == 'mother' %}
+          <a href="{{ url_for('mother_page') }}">My Dashboard</a> |
+        {% elif session.get('role') == 'doctor' %}
+          <a href="{{ url_for('doctor_page') }}">Doctor Dashboard</a> |
+        {% endif %}
+        <span>Welcome, {{ session.get('full_name') }}!</span>
+        <a href="{{ url_for('logout') }}" style="margin-left: 10px;">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Login</a> |
+        <a href="{{ url_for('signup') }}">Sign Up</a>
+      {% endif %}
     </nav>
     <hr/>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="card" style="background-color:{% if category == 'danger' %}#f8d7da{% else %}#d4edda{% endif %};
+          color:{% if category == 'danger' %}#721c24{% else %}#155724{% endif %};
+          border:0;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     {% block content %}{% endblock %}
   </body>
 </html>
