@@ -137,10 +137,15 @@ def upload_meal():
 
     # Run dummy OCR
     ocr_result = analyze_image_dummy(save_path)
-    nutrients = ocr_result.get("nutrients", {})
+    print(ocr_result)
+    dish_name = ocr_result["nutrients"]["dish_name"]
+    nutrients = {k: v for k, v in ocr_result["nutrients"].items() if k != "dish_name"}
+
+
 
     # Update the meal document
-    updated = update_meal_labels_and_nutrients(meal_id, ocr_result.get("labels"), nutrients)
+    updated = update_meal_labels_and_nutrients(meal_id, ocr_result.get("labels"), nutrients, dish_name)
+
     updated['_id'] = str(updated['_id'])
 
     # --- Compare with doctor's plan ---

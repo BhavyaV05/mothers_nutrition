@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from config import MONGO_URI
 from bson.objectid import ObjectId
 from datetime import datetime
-
+from pymongo import ReturnDocument
 client = MongoClient(MONGO_URI)
 db = client.get_default_database()
 
@@ -17,13 +17,20 @@ alerts_col = db.get_collection("alerts")
 
 def get_total_intake_for_day(mother_id, meal_date):
     """Return the total nutrients consumed by a mother on a given day."""
-    meals = list(meals_col.find({"motherId": mother_id, "mealDate": meal_date}))
+    meals = list(db.meals.find({"motherId": mother_id, "mealDate": meal_date}))
     total = {}
+
     for meal in meals:
         nutrients = meal.get("nutrients", {})
         for k, v in nutrients.items():
-            total[k] = total.get(k, 0) + v
-    return total
+            try:
+                value = float(v)
+            except (ValueError, TypeError):
+                continue  # skip dish_name or any accidental non-numeric value
+
+            total[k] = total.get(k, 0) + value
+
+    return {k: round(v, 2) for k, v in total.items()}
 
 
 def create_meal_doc(mother_id, meal_type, meal_date, image_path):
@@ -39,12 +46,19 @@ def create_meal_doc(mother_id, meal_type, meal_date, image_path):
     return str(res.inserted_id), doc
 
 
-def update_meal_labels_and_nutrients(meal_id, labels, nutrients):
-    meals_col.update_one(
+def update_meal_labels_and_nutrients(meal_id, labels, nutrients, dish_name):
+    updated_meal = meals_col.find_one_and_update(
         {"_id": ObjectId(meal_id)},
-        {"$set": {"labels": labels, "nutrients": nutrients, "status": "processed", "processedAt": datetime.utcnow()}}
+        {"$set": {
+            "labels": labels,
+            "nutrients": nutrients,
+            "dish_name": dish_name,          # <--- NEW FIELD STORED
+            "status": "processed",
+            "processedAt": datetime.utcnow()
+        }},
+        return_document=ReturnDocument.AFTER
     )
-    return meals_col.find_one({"_id": ObjectId(meal_id)})
+    return updated_meal
 
 
 def get_meal(meal_id):
