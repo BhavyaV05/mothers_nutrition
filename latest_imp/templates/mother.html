@@ -245,37 +245,64 @@ async function loadRemainingNutrients() {
     }
 }
 
+
 async function loadMealHistory() {
     const motherId = document.getElementById("motherId").value.trim();
     if (!motherId) return;
+
     try {
         const res = await fetch(`/api/meals/mother/${motherId}`);
         const meals = await res.json();
+
         if (!Array.isArray(meals) || meals.length === 0) {
             document.getElementById("mealHistory").innerHTML = "<em>No meals yet.</em>";
             return;
         }
+
         let html = "";
         meals.forEach((m) => {
             const n = m.nutrients || {};
+            const dish = m.dish_name || "Unknown Dish";
+            const mealType = m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal";
+            const mealDate = m.mealDate || "Date Unavailable";
+
             html += `
-                <div class="meal-item">
-                    <strong>${m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1)}</strong> — ${m.mealDate || "Date Unavailable"}<br/>
-                    Nutrients: 
-                    <span title="Kilocalories">**kcal**=${n.kcal||0}</span>, 
-                    <span title="Protein in grams">**protein**=${n.protein_g||0}g</span>, 
-                    <span title="Carbohydrates in grams">**carbs**=${n.carb_g||0}g</span>, 
-                    <span title="Fat in grams">**fat**=${n.fat_g||0}g</span>
-                    <br/>
-                    <small>Status: **${m.status}**</small>
+                <div class="meal-entry">
+                    <div class="meal-header">
+                        <strong>${dish}</strong>
+                        <span>${mealType} — ${mealDate}</span>
+                    </div>
+
+                    <table class="nutrient-table">
+                        <tr><th>Nutrient</th><th>Amount</th></tr>
+                        <tr><td>Energy</td><td>${n.kcal || 0} kcal</td></tr>
+                        <tr><td>Carbohydrates</td><td>${n.carb_g || 0} g</td></tr>
+                        <tr><td>Protein</td><td>${n.protein_g || 0} g</td></tr>
+                        <tr><td>Fat</td><td>${n.fat_g || 0} g</td></tr>
+                        <tr><td>Free Sugar</td><td>${n.free_sugar_g || 0} g</td></tr>
+                        <tr><td>Fibre</td><td>${n.fibre_g || 0} g</td></tr>
+                        <tr><td>Sodium</td><td>${n.sodium_mg || 0} mg</td></tr>
+                        <tr><td>Calcium</td><td>${n.calcium_mg || 0} mg</td></tr>
+                        <tr><td>Iron</td><td>${n.iron_mg || 0} mg</td></tr>
+                        <tr><td>Vitamin C</td><td>${n.vitamin_c_mg || 0} mg</td></tr>
+                        <tr><td>Folate</td><td>${n.folate_ug || 0} µg</td></tr>
+                    </table>
+
+                    <small class="meal-status">Status: ${m.status || "unknown"}</small>
                 </div>
             `;
         });
+
         document.getElementById("mealHistory").innerHTML = html;
+
     } catch (err) {
         document.getElementById("mealHistory").innerHTML = "<em>Failed to load history.</em>";
     }
 }
+
+// Refresh button
+document.getElementById("refreshHistory").addEventListener("click", loadMealHistory);
+
 
 // ---------- Load Nutrient Alerts (Unchanged logic) ----------
 async function loadAlerts() {

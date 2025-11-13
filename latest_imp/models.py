@@ -2,22 +2,37 @@ from pymongo import MongoClient
 from config import MONGO_URI
 from bson.objectid import ObjectId
 from datetime import datetime
-
+from pymongo import ReturnDocument
 client = MongoClient(MONGO_URI)
 db = client.get_default_database()
 
+# Collections
 meals_col = db.get_collection("meals")
 plans_col = db.get_collection("nutrition_plans")
 mothers_col = db.get_collection("mothers")
+users_col = db.get_collection("users")   # ✅ Added for login/signup
+alerts_col = db.get_collection("alerts")
+
+# ---------------- MEALS ----------------
+
 def get_total_intake_for_day(mother_id, meal_date):
     """Return the total nutrients consumed by a mother on a given day."""
     meals = list(db.meals.find({"motherId": mother_id, "mealDate": meal_date}))
     total = {}
+
     for meal in meals:
         nutrients = meal.get("nutrients", {})
         for k, v in nutrients.items():
-            total[k] = total.get(k, 0) + v
-    return total
+            try:
+                value = float(v)
+            except (ValueError, TypeError):
+                continue  # skip dish_name or any accidental non-numeric value
+
+            total[k] = total.get(k, 0) + value
+
+    return {k: round(v, 2) for k, v in total.items()}
+
+
 def create_meal_doc(mother_id, meal_type, meal_date, image_path):
     doc = {
         "motherId": mother_id,
@@ -30,15 +45,27 @@ def create_meal_doc(mother_id, meal_type, meal_date, image_path):
     res = meals_col.insert_one(doc)
     return str(res.inserted_id), doc
 
-def update_meal_labels_and_nutrients(meal_id, labels, nutrients):
-    meals_col.update_one(
+
+def update_meal_labels_and_nutrients(meal_id, labels, nutrients, dish_name):
+    updated_meal = meals_col.find_one_and_update(
         {"_id": ObjectId(meal_id)},
-        {"$set": {"labels": labels, "nutrients": nutrients, "status": "processed", "processedAt": datetime.utcnow()}}
+        {"$set": {
+            "labels": labels,
+            "nutrients": nutrients,
+            "dish_name": dish_name,          # <--- NEW FIELD STORED
+            "status": "processed",
+            "processedAt": datetime.utcnow()
+        }},
+        return_document=ReturnDocument.AFTER
     )
-    return meals_col.find_one({"_id": ObjectId(meal_id)})
+    return updated_meal
+
 
 def get_meal(meal_id):
     return meals_col.find_one({"_id": ObjectId(meal_id)})
+
+
+# ---------------- PLANS ----------------
 
 def create_nutrition_plan(mother_id, title, meals):
     doc = {
@@ -50,9 +77,12 @@ def create_nutrition_plan(mother_id, title, meals):
     }
     res = plans_col.insert_one(doc)
     return str(res.inserted_id), doc
+
+
 def get_latest_plan_for_mother(mother_id):
     plan = plans_col.find_one({"motherId": mother_id, "status": "active"}, sort=[("createdAt", -1)])
     return plan
+
 
 def get_total_nutrients_for_day(mother_id, meal_date):
     """Sum nutrients from all meals uploaded by mother on a given date."""
@@ -65,6 +95,7 @@ def get_total_nutrients_for_day(mother_id, meal_date):
     return totals
 
 
+# ---------------- ALERTS ----------------
 
 def create_alert(mother_id, meal_date, nutrient_deficit, reason=None):
     """Insert a nutrient alert with optional reason and return serialized alert."""
@@ -75,21 +106,21 @@ def create_alert(mother_id, meal_date, nutrient_deficit, reason=None):
         "status": "active",
         "createdAt": datetime.utcnow()
     }
-
     if reason:
         alert["reason"] = reason
 
-    res = db.alerts.insert_one(alert)
-    alert["_id"] = str(res.inserted_id)  # Convert ObjectId to string before returning
-
+    res = alerts_col.insert_one(alert)
+    alert["_id"] = str(res.inserted_id)
     return alert
 
 
 def get_active_alerts(mother_id):
-    alerts = list(db.alerts.find({"motherId": mother_id, "status": "active"}).sort("createdAt", -1))
+    alerts = list(alerts_col.find({"motherId": mother_id, "status": "active"}).sort("createdAt", -1))
     for a in alerts:
         a["_id"] = str(a["_id"])
     return alerts
+
+
 def get_active_plan_for_mother_and_date(mother_id, meal_date):
     """Return the latest active plan for a mother for the given date."""
     plan = plans_col.find_one(
