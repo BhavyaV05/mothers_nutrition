@@ -161,8 +161,7 @@
     <p>Upload your meal photo, select the meal type and date. The system will analyze your meal and compare it with your doctor's plan.</p>
 
     <form id="uploadForm">
-        <label for="motherId">Mother ID</label>
-        <input id="motherId" name="motherId" placeholder="Enter Mother ID" value="m_1" required />
+        <input type="hidden" id="motherId" name="motherId" value="{{ mother_id }}" />
 
         <label for="mealType">Meal Type</label>
         <select id="mealType" name="mealType" required>
@@ -201,14 +200,16 @@
 <script>
 // ---------- Load Meal History (Modified to use new CSS class) ----------
 // ---------- Load Remaining Nutrients ----------
+function getMotherId() {
+    // This will securely get the ID from the hidden input field
+    return document.getElementById("motherId").value.trim();
+}
 async function loadRemainingNutrients() {
-    const motherId = document.getElementById("motherId").value.trim();
+    const motherId = getMotherId(); // Use the secure function
     if (!motherId) return;
 
     try {
-        console.log("hahah");
         const res = await fetch(`/api/nutrients/remaining/${motherId}`);
-        console.log(res);
         const data = await res.json();
 
         if (!data || !data.remaining) {
@@ -219,6 +220,14 @@ async function loadRemainingNutrients() {
         const r = data.remaining;
         const c = data.consumed;
         const req = data.required;
+        
+        // Define the nutrients to display and their units
+        const nutrientList = [
+            { key: "kcal", label: "Energy (kcal)", unit: "kcal" },
+            { key: "protein", label: "Protein (g)", unit: "g" },
+            { key: "carbs", label: "Carbs (g)", unit: "g" },
+            { key: "fat", label: "Fat (g)", unit: "g" }
+        ];
 
         document.getElementById("remainingNutrients").innerHTML = `
             <table style="width:100%; border-collapse: collapse;">
@@ -228,26 +237,25 @@ async function loadRemainingNutrients() {
                     <th style="text-align:right; padding:8px;">Required</th>
                     <th style="text-align:right; padding:8px;">Remaining</th>
                 </tr>
-                ${["kcal","protein","carbs","fat"].map(k => `
+                ${nutrientList.map(n => `
                     <tr>
-                        <td style="padding:8px;">${k.toUpperCase()}</td>
-                        <td style="text-align:right; padding:8px;">${c[k] || 0}</td>
-                        <td style="text-align:right; padding:8px;">${req[k] || 0}</td>
-                        <td style="text-align:right; padding:8px; color:${r[k] <= 0 ? 'green' : 'red'};">
-                            ${r[k] > 0 ? r[k] : 0}
+                        <td style="padding:8px;">${n.label}</td>
+                        <td style="text-align:right; padding:8px;">${c[n.key] || 0} ${n.unit}</td>
+                        <td style="text-align:right; padding:8px;">${req[n.key] || 0} ${n.unit}</td>
+                        <td style="text-align:right; padding:8px; color:${r[n.key] <= 0 ? 'green' : 'red'}; font-weight: bold;">
+                            ${r[n.key] > 0 ? r[n.key] : 0} ${n.unit}
                         </td>
                     </tr>
                 `).join("")}
             </table>
         `;
     } catch (err) {
-        document.getElementById("remainingNutrients").innerHTML = "<em>Failed to load.</em>";
+        document.getElementById("remainingNutrients").innerHTML = "<em>Failed to load nutrition plan or totals.</em>";
     }
 }
 
-
 async function loadMealHistory() {
-    const motherId = document.getElementById("motherId").value.trim();
+    const motherId = getMotherId(); // Use the secure function
     if (!motherId) return;
 
     try {
@@ -267,13 +275,13 @@ async function loadMealHistory() {
             const mealDate = m.mealDate || "Date Unavailable";
 
             html += `
-                <div class="meal-entry">
+                <div class="meal-item">
                     <div class="meal-header">
                         <strong>${dish}</strong>
                         <span>${mealType} — ${mealDate}</span>
                     </div>
 
-                    <table class="nutrient-table">
+                    <table class="nutrient-table" style="font-size: 0.9em; width: 100%; margin-top: 5px;">
                         <tr><th>Nutrient</th><th>Amount</th></tr>
                         <tr><td>Energy</td><td>${n.kcal || 0} kcal</td></tr>
                         <tr><td>Carbohydrates</td><td>${n.carb_g || 0} g</td></tr>
@@ -288,7 +296,7 @@ async function loadMealHistory() {
                         <tr><td>Folate</td><td>${n.folate_ug || 0} µg</td></tr>
                     </table>
 
-                    <small class="meal-status">Status: ${m.status || "unknown"}</small>
+                    <small class="meal-status" style="float: right; color: #6c757d;">Status: ${m.status || "unknown"}</small>
                 </div>
             `;
         });
@@ -301,12 +309,16 @@ async function loadMealHistory() {
 }
 
 // Refresh button
-document.getElementById("refreshHistory").addEventListener("click", loadMealHistory);
+document.getElementById("refreshHistory").addEventListener("click", () => {
+    loadMealHistory();
+    loadRemainingNutrients();
+});
+
 
 
 // ---------- Load Nutrient Alerts (Unchanged logic) ----------
 async function loadAlerts() {
-    const motherId = document.getElementById("motherId").value.trim();
+    const motherId = getMotherId(); // Use the secure function
     if (!motherId) return;
     try {
         const res = await fetch(`/api/alerts/${motherId}`);
@@ -324,7 +336,7 @@ async function loadAlerts() {
             Low intake detected on **${latest.mealDate}** (Deficit vs. Required):<br/>
             <ul style="padding-left: 0; list-style-type: none;">${lines.join("")}</ul>
         `;
-        document.getElementById("alertBox").style.display = "flex"; // Changed to flex for new styling
+        document.getElementById("alertBox").style.display = "flex";
     } catch (err) {
         // Silently fail if alerts can't load
         document.getElementById("alertBox").style.display = "none";
@@ -358,39 +370,29 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
             <strong>OCR Result:</strong>
             <pre>${JSON.stringify(data.ocr_result, null, 2)}</pre>
         `;
-        if (data.nutrient_check && data.nutrient_check.alert_created) {
+        if (data.meal_check && data.meal_check.alert_created) {
             html += `<strong style="color:#cc0000; display: block; margin-top: 10px;">⚠️ Nutrient Deficit Detected!</strong>
-                     <pre>${JSON.stringify(data.nutrient_check.deficits, null, 2)}</pre>`;
+                     <pre>${JSON.stringify(data.meal_check.deficits, null, 2)}</pre>`;
         }
         document.getElementById("resultArea").innerHTML = html;
 
         // Refresh UI
         loadMealHistory();
         loadAlerts();
+        loadRemainingNutrients(); // Refresh remaining nutrients after a meal upload
 
     } catch (err) {
         document.getElementById("resultArea").innerHTML =
             "<pre style='color: red;'>❌ Upload failed: " + err.message + "</pre>";
     }
 });
-// At the bottom of your existing script:
+
+// ---------- Initialize on load ----------
 window.addEventListener("load", () => {
+    // Ensure data loads immediately for the logged-in user
     loadMealHistory();
     loadAlerts();
-    loadRemainingNutrients();  // 👈 added here
-});
-
-document.getElementById("refreshHistory").addEventListener("click", () => {
-    loadMealHistory();
-    loadRemainingNutrients();  // 👈 also refresh here
-});
-
-document.getElementById("refreshHistory").addEventListener("click", loadMealHistory);
-
-// ---------- Initialize on load (Unchanged logic) ----------
-window.addEventListener("load", () => {
-    loadMealHistory();
-    loadAlerts();
+    loadRemainingNutrients();
 });
 </script>
 
