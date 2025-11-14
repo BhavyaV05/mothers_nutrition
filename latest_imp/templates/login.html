@@ -1,75 +1,45 @@
-{% extends "base.html" %}
-{% block title %}Login - Mother's Nutrition{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        /* Basic styling for clarity */
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; }
+        .container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; color: #333; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="email"], input[type="password"], select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; margin-top: 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        .error { color: red; text-align: center; margin-top: 10px; }
+        .footer-link { text-align: center; margin-top: 15px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>User Login 🩺🍎</h2>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="POST">
+            <label for="role">Role:</label>
+            <select id="role" name="role" required>
+                <option value="mother">Mother</option>
+                <option value="doctor">Doctor</option>
+            </select>
 
-{% block content %}
-<div class="flex items-center justify-center min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
-    <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-        Sign in to your account
-      </h2>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit">Log In</button>
+        </form>
+        <div class="footer-link">
+            Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a>
+        </div>
     </div>
-    
-    <!-- Flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="{% if category == 'danger' %}bg-red-100 border-red-400 text-red-700{% else %}bg-blue-100 border-blue-400 text-blue-700{% endif %} border px-4 py-3 rounded relative" role="alert">
-            <span class="block sm:inline">{{ message }}</span>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <!-- Plain HTML Login Form -->
-    <form class="mt-8 space-y-6" action="{{ url_for('login') }}" method="POST">
-      <div class="rounded-md shadow-sm -space-y-px">
-        <div>
-          <label for="email-address" class="sr-only">Email address</label>
-          <input id="email-address" name="email" type="email" autocomplete="email" required
-            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Email address">
-        </div>
-        <div>
-          <label for="password" class="sr-only">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required
-            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="Password">
-        </div>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <input id="remember-me" name="remember" type="checkbox"
-            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-          <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-            Remember me
-          </label>
-        </div>
-
-        <div class="text-sm">
-          <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">
-            Forgot your password?
-          </a>
-        </div>
-      </div>
-
-      <div>
-        <button type="submit"
-          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-          Sign in
-        </button>
-      </div>
-
-      <div class="text-sm text-center">
-        <p class="text-gray-600">
-          Don't have an account?
-          <a href="{{ url_for('signup') }}" class="font-medium text-indigo-600 hover:text-indigo-500">
-            Sign up here
-          </a>
-        </p>
-      </div>
-    </form>
-  </div>
-</div>
-{% endblock %}
+</body>
+</html>
