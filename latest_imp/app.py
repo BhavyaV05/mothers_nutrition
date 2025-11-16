@@ -362,6 +362,15 @@ def get_all_queries():
         q["_id"] = str(q["_id"])
     return jsonify(queries)
 
+# API: Get queries for a specific mother
+@app.route("/api/queries/mother/<mother_id>", methods=["GET"])
+def get_mother_queries(mother_id):
+    from models import db
+    queries = list(db.get_collection('queries').find({"motherId": mother_id}).sort("createdAt", -1))
+    for q in queries:
+        q["_id"] = str(q["_id"])
+    return jsonify(queries)
+
 # API: Remaining nutrients for the day
 @app.route("/api/nutrients/remaining/<mother_id>", methods=["GET"])
 def get_remaining_nutrients(mother_id):
