@@ -149,11 +149,17 @@
     <div id="alertText"></div>
 </div>
 
----
+
 <div class="card">
     <h3>Remaining Nutrients for Today</h3>
     <div id="remainingNutrients"><em>Loading...</em></div>
 </div>
+<div class="card" style="background-color: #e9f5ff;">
+    <h3>Assigned Doctor</h3>
+    <div id="doctorDetails"><em>Checking assignment...</em></div>
+</div>
+
+<input type="hidden" id="assignedDoctorId" value="{{ assigned_doctor_id }}" />
 
 
 <div class="card">
@@ -204,6 +210,43 @@ function getMotherId() {
     // This will securely get the ID from the hidden input field
     return document.getElementById("motherId").value.trim();
 }
+// Function to display doctor details
+async function loadDoctorDetails() {
+    const doctorId = document.getElementById("assignedDoctorId").value.trim();
+    const detailsDiv = document.getElementById("doctorDetails");
+    
+    if (!doctorId || doctorId === 'None') {
+        detailsDiv.innerHTML = "<em>You have not been assigned a doctor yet.</em>";
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/doctor/${doctorId}`);
+        const doctor = await res.json();
+
+        if (res.ok) {
+            detailsDiv.innerHTML = `
+                <p>
+                    <strong>Dr. ${doctor.name || 'Name not available'}</strong><br>
+                    Email: ${doctor.email || 'N/A'}<br>
+                    <small style="color: #6c757d;">(ID: ${doctorId})</small>
+                </p>
+            `;
+        } else {
+            detailsDiv.innerHTML = `<em>Error: Could not find doctor details.</em>`;
+        }
+    } catch (err) {
+        detailsDiv.innerHTML = `<em>Failed to load doctor information.</em>`;
+    }
+}
+
+// Add the call to the window load listener:
+window.addEventListener("load", () => {
+    loadMealHistory();
+    loadAlerts();
+    loadRemainingNutrients();
+    loadDoctorDetails(); // <-- NEW CALL
+});
 async function loadRemainingNutrients() {
     const motherId = getMotherId(); // Use the secure function
     if (!motherId) return;

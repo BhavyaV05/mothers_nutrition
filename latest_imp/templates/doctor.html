@@ -1,52 +1,130 @@
 {% extends "base.html" %}
 {% block content %}
+
+<style>
+    /* Use the same basic card styling for consistency */
+    .card {
+        background-color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    h2 {
+        color: #007bff;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 8px;
+        margin-bottom: 20px;
+    }
+    .mother-list {
+        list-style: none;
+        padding: 0;
+    }
+    .mother-item {
+        border-bottom: 1px solid #eee;
+        padding: 15px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .mother-item:last-child {
+        border-bottom: none;
+    }
+    .mother-info strong {
+        font-size: 1.1em;
+        color: #333;
+    }
+    .mother-info small {
+        display: block;
+        color: #6c757d;
+    }
+    .track-button {
+        background-color: #28a745; /* Green color for tracking */
+        color: white;
+        text-decoration: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        font-weight: bold;
+        transition: background-color 0.2s;
+    }
+    .track-button:hover {
+        background-color: #1e7e34;
+    }
+</style>
+
 <div class="card">
-  <h3>Create Daily Nutrient Plan</h3>
-  <form id="planForm">
-    <label>Mother ID</label>
-    <input name="motherId" value="m_1" required />
+    <h2>Mother Tracking Dashboard</h2>
+    <p>Select a mother below to view their meal history, nutrient totals, and make plan adjustments.</p>
 
-    <label>Title</label>
-    <input name="title" value="Daily Requirement Plan" />
+    <input type="hidden" id="doctorId" value="{{ doctor_id }}" />
 
-    <label>Required Nutrients (meal-wise JSON)</label>
-    <textarea name="required_nutrients" rows="8">
-{
-  "breakfast": {"kcal": 400, "protein_g": 15, "carb_g": 50, "fat_g": 10},
-  "lunch": {"kcal": 700, "protein_g": 25, "carb_g": 90, "fat_g": 20},
-  "dinner": {"kcal": 700, "protein_g": 25, "carb_g": 90, "fat_g": 20},
-  "snack": {"kcal": 300, "protein_g": 10, "carb_g": 40, "fat_g": 8}
-}
-    </textarea>
-
-    <button type="submit" style="margin-top:12px;">Save Plan</button>
-  </form>
-  <div id="planResult"><em>No plan created yet.</em></div>
+    <div id="motherListContainer">
+        
+        <ul id="motherList" class="mother-list">
+            </ul>
+    </div>
 </div>
 
 <script>
-document.getElementById("planForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const f = e.target;
-  const motherId = f.elements["motherId"].value.trim();
-  const title = f.elements["title"].value;
-  let required_nutrients;
-  try {
-    required_nutrients = JSON.parse(f.elements["required_nutrients"].value);
-  } catch (err) {
-    document.getElementById("planResult").innerHTML = "<pre>Invalid JSON for required_nutrients</pre>";
-    return;
-  }
+    function getDoctorId() {
+        return document.getElementById("doctorId").value.trim();
+    }
 
-  const payload = { motherId, title, required_nutrients };
-  const res = await fetch("/api/nutrition-plans", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
-  document.getElementById("planResult").innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
-});
+    async function loadAssignedMothers() {
+        const doctorId = getDoctorId();
+        const listElement = document.getElementById("motherList");
+        listElement.innerHTML = ''; // Clear loading message
+
+        if (!doctorId) {
+            listElement.innerHTML = "<li>Error: Doctor ID not found in session.</li>";
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/mothers/assigned/${doctorId}`);
+            const mothers = await res.json();
+
+            if (!res.ok) {
+                listElement.innerHTML = `<li>Error loading data: ${mothers.error || 'Check server logs.'}</li>`;
+                return;
+            }
+
+            if (mothers.length === 0) {
+                listElement.innerHTML = "<li>You currently have no mothers assigned.</li>";
+                return;
+            }
+
+            mothers.forEach(mother => {
+                const item = document.createElement('li');
+                item.className = 'mother-item';
+                
+                // Display mother info
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'mother-info';
+                infoDiv.innerHTML = `
+                    <strong>${mother.name || 'Anonymous Mother'}</strong> 
+                    <small>${mother.email || 'No email'} | State: ${mother.location_state || 'N/A'}</small>
+                `;
+
+                // Tracking button (placeholder for the next page route)
+                const trackLink = document.createElement('a');
+                trackLink.href = `/doctor/mother/${mother._id}`; // Placeholder route for detailed tracking
+                trackLink.className = 'track-button';
+                trackLink.textContent = 'Track Progress';
+
+                item.appendChild(infoDiv);
+                item.appendChild(trackLink);
+                listElement.appendChild(item);
+            });
+
+        } catch (error) {
+            listElement.innerHTML = `<li>Failed to connect to server: ${error.message}</li>`;
+        }
+    }
+
+    // Load the list when the page is ready
+    window.addEventListener("load", loadAssignedMothers);
 </script>
 
 {% endblock %}
