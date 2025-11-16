@@ -141,10 +141,14 @@ def signup():
             # Mother-specific fields
             assigned_doctor_id = get_random_doctor_id()
             assigned_asha = assign_random_asha()
+
             if not assigned_doctor_id:
                 error = "Cannot register mother: No doctors available for assignment."
                 return render_template("signup.html", error=error, states=INDIAN_STATES, incomes=INCOME_RANGES, diets=DIETARY_PREFERENCES)
 
+            # Ensure doctor & asha ids are stored as strings
+            assigned_doctor_id_str = str(assigned_doctor_id) if assigned_doctor_id is not None else None
+            assigned_asha_str = str(assigned_asha) if assigned_asha is not None else None
 
             user_doc.update({
                 "name": request.form.get("name"),
@@ -154,8 +158,12 @@ def signup():
                 "location_area_type": request.form.get("area_type"),
                 "income_range": request.form.get("income"),
                 "dietary_preference": request.form.get("diet"),
-                "ashaId": assigned_asha
+
+                # store both assignments explicitly
+                "assigned_doctor_id": assigned_doctor_id_str,
+                "ashaId": assigned_asha_str
             })
+
 
         # Doctor signup
         elif role == "doctor":
