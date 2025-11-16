@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Local environment and secrets
+.env
+.venv/
+venv/
+
+# Uploaded media (we will mount this as a volume)
+uploads/
+
+# Documentation
+*.md
+
+# Test/helper scripts
+test_queries.py
+setup_query_db.py
+helper.py
+a.py
+
+# Git
+.git/
+.gitignore
