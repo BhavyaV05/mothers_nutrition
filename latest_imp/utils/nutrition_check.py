@@ -1,28 +1,25 @@
-def compare_nutrients(actual, optimum, threshold=0.9):
-    """
-    Compare nutrient intake vs optimum.
-    Returns dict of deficits if below threshold ratio.
-    """
-    print("=== DEBUG: Nutrient Comparison ===")
-    print("Actual Intake:")
-    for k, v in actual.items():
-        print(f"  {k}: {v}")
-    print("\nOptimum Requirement:")
-    for k, v in optimum.items():
-        print(f"  {k}: {v}")
-    print("==================================\n")
+# In utils/nutrition_check.py (a new file)
 
+def compare_nutrients(actual_nutrients: dict, target_nutrients: dict) -> dict:
+    """
+    Compares actual consumed nutrients against a target plan.
+
+    Returns a dictionary of deficits (e.g., {"protein_g": 10, "iron_mg": 5})
+    where the value is the amount *missing*.
+    """
     deficits = {}
-    for key, req_value in optimum.items():
-        actual_value = actual.get(key, 0)
-        if req_value <= 0:
-            continue
-        ratio = actual_value / req_value
-        if ratio < threshold:
-            deficits[key] = {
-                "required": req_value,
-                "actual": actual_value,
-                "percent": round(ratio * 100, 1)
-            }
-
+    
+    # Iterate over the doctor's target plan
+    for nutrient_key, target_value in target_nutrients.items():
+        
+        # Get the nutrient from the mother's meal, default to 0
+        actual_value = actual_nutrients.get(nutrient_key, 0)
+        
+        # Calculate the difference
+        difference = target_value - actual_value
+        
+        # If the mother is short (difference > 0), record the deficit
+        if difference > 0:
+            deficits[nutrient_key] = round(difference, 2)
+            
     return deficits

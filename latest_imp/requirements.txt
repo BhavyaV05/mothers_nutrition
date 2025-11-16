@@ -2,4 +2,19 @@ Flask==3.0.3
 pymongo==4.4.0
 python-dotenv==1.0.0
 werkzeug==3.0.0
+# Core ML + Data Processing
+numpy
+pandas
+scikit-learn
+
+# Database
+pymongo
+
+# Google API
+google-api-python-client
+google-auth
+
+# Utilities
+python-dotenv
+certifi
 gunicorn

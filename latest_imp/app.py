@@ -5,7 +5,7 @@ import os
 from flask import Flask, request, jsonify, render_template, redirect, url_for,session,flash
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH, SECRET_KEY
-from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,get_user_by_id
+from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,get_user_by_id, upsert_nutrition_plan
 
 from utils.ocr_dummy import analyze_image_dummy
 from bson.objectid import ObjectId
@@ -13,6 +13,8 @@ from datetime import datetime
 import json
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
+from utils.nutrition_check import compare_nutrients # <-- NEW
+from meal_recommendor import recommend_from_deficits
 
 # IMPORTANT for ASHA worker feature
 from models import db
@@ -141,7 +143,6 @@ def signup():
             # Mother-specific fields
             assigned_doctor_id = get_random_doctor_id()
             assigned_asha = assign_random_asha()
-
             if not assigned_doctor_id:
                 error = "Cannot register mother: No doctors available for assignment."
                 return render_template("signup.html", error=error, states=INDIAN_STATES, incomes=INCOME_RANGES, diets=DIETARY_PREFERENCES)
@@ -159,9 +160,17 @@ def signup():
                 "income_range": request.form.get("income"),
                 "dietary_preference": request.form.get("diet"),
 
-                # store both assignments explicitly
+                "ashaId": assigned_asha,
                 "assigned_doctor_id": assigned_doctor_id_str,
-                "ashaId": assigned_asha_str
+                "cuisine_preference": request.form.get("cuisine_preference", ""),
+                
+                # Split comma-separated string into a list
+                "allergies": [
+                    allergy.strip().lower() for allergy 
+                    in request.form.get("allergies", "").split(',') 
+                    if allergy.strip()
+                ]
+
             })
 
 
@@ -430,7 +439,6 @@ def query_page():
 
     return render_template('query.html', mother_id=session.get('user_id'))
 
-
 @app.route("/api/meals/upload", methods=["POST"])
 def upload_meal():
     mother_id = session.get("user_id") or request.form.get("motherId")
@@ -449,36 +457,93 @@ def upload_meal():
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     img.save(save_path)
 
+    # 1. Create the initial meal document
     meal_id, _ = create_meal_doc(mother_id, meal_type, meal_date, save_path)
 
+    # 2. Run OCR/AI to get nutrients
     ocr_result = analyze_image_dummy(save_path)
     dish_name = ocr_result["nutrients"]["dish_name"]
-    nutrients = {k: v for k, v in ocr_result["nutrients"].items() if k != "dish_name"}
+    # This is the "actual" nutrients from the meal
+    actual_nutrients = {k: v for k, v in ocr_result["nutrients"].items() if k != "dish_name"}
 
-    updated = update_meal_labels_and_nutrients(meal_id, ocr_result.get("labels"), nutrients, dish_name)
-
+    # 3. Update the meal document with nutrient info
+    updated = update_meal_labels_and_nutrients(
+        meal_id, 
+        ocr_result.get("labels"), 
+        actual_nutrients, 
+        dish_name
+    )
     updated['_id'] = str(updated['_id'])
 
-    from utils.nutrition_check import compare_nutrients
-
+    # --- 4. START: Alert & Recommendation Logic ---
     plan = get_active_plan_for_mother_and_date(mother_id, meal_date)
     alert_info = None
+    meal_recommendation = None # This is what we will show the mother
 
     if plan and plan.get("required_nutrients") and meal_type in plan["required_nutrients"]:
-        req_nutrients = plan["required_nutrients"][meal_type]
-        deficits = compare_nutrients(nutrients, req_nutrients)
+        # A plan exists for this meal. Let's compare.
+        
+        # Get the "target" nutrients for this specific meal
+        target_nutrients = plan["required_nutrients"][meal_type]
+        
+        # Compare actual vs. target to find deficits
+        deficits = compare_nutrients(actual_nutrients, target_nutrients)
+        
         if deficits:
+            # --- A. DEFICIT FOUND ---
+            print(f"Deficits found for {mother_id}: {deficits}")
+            
+            # Part 1: Save Alert for Doctor (Backend)
             alert_doc = create_alert(
                 mother_id=mother_id,
                 meal_date=meal_date,
                 nutrient_deficit=deficits
             )
             alert_info = {"alert_created": True, "deficits": deficits, "alert_id": alert_doc["_id"]}
-        else:
-            alert_info = {"alert_created": False}
-    else:
-        alert_info = {"alert_created": False, "reason": "no plan for meal type"}
 
+            # Part 2: Generate Recommendation for Mother (Frontend)
+            mother_doc = get_user_by_id(mother_id)
+            
+            # Build the profile your recommender needs
+            profile_for_recommender = {
+                "state": mother_doc.get("location_state", ""),
+                "area": mother_doc.get("location_area_type", "both"),
+                "income_range": mother_doc.get("income_range", ""),
+                "diet_pref": mother_doc.get("dietary_preference", ""),
+                "cuisine_pref": mother_doc.get("cuisine_preference", ""), 
+                "allergies_to_avoid": mother_doc.get("allergies", []) 
+            }
+            
+            # Call the recommender with the deficits
+            recs = recommend_from_deficits(deficits, profile_for_recommender, top_n=1)
+            print("hahah")
+            print(recs)
+            # Get the top meal
+            if recs and recs.get("recommended_meals") and recs["recommended_meals"]:
+                meal_recommendation = recs["recommended_meals"][0]
+                meal_recommendation["reason"] = f"Your last meal was a bit low on some nutrients."
+                print(f"Recommendation generated: {meal_recommendation['Dish Name']}")
+        
+        else:
+            # --- B. NO DEFICIT ---
+            # Meal was good, no alert needed.
+            alert_info = {"alert_created": False}
+            # meal_recommendation stays None
+    
+    else:
+        # --- C. NO PLAN FOUND ---
+        # No plan exists for this meal, so we can't compare.
+        alert_info = {"alert_created": False, "reason": "no plan for this meal type"}
+        # meal_recommendation stays None
+
+    # 5. Save the final recommendation (or None) to the mother's profile
+    users_col.update_one(
+        {"_id": ObjectId(mother_id)},
+        {"$set": {"latest_recommendation": meal_recommendation}}
+    )
+    # --- END: Alert & Recommendation Logic ---
+
+    # 6. Calculate daily totals (for summary)
     total_intake = get_total_intake_for_day(mother_id, meal_date)
 
     if plan and plan.get("required_nutrients"):
@@ -494,11 +559,12 @@ def upload_meal():
         taken = total_intake.get(k, 0)
         remaining[k] = round(max(goal - taken, 0), 2)
 
+    # 7. Send the final response
     return jsonify({
-
         "meal": updated,
         "ocr_result": ocr_result,
-        "meal_check": alert_info,
+        "meal_check": alert_info, # For backend/doctor use
+        "next_meal_recommendation": meal_recommendation, # For mother's app
         "daily_summary": {
             "goal": daily_goal,
             "taken_so_far": total_intake,
@@ -506,55 +572,7 @@ def upload_meal():
         }
     }), 201
 
-    if request.method == "POST":
-        # === Form is being submitted, save the data ===
-        
-        # 1. Build the required_nutrients dictionary from the form
-        required_nutrients = {
-            "breakfast": {
-                "kcal": request.form.get('breakfast-kcal', 0, type=float),
-                "protein": request.form.get('breakfast-protein', 0, type=float),
-                "carbohydrates": request.form.get('breakfast-carbohydrates', 0, type=float),
-                "calcium": request.form.get('breakfast-calcium', 0, type=float),
-                "iron": request.form.get('breakfast-iron', 0, type=float),
-                "folic_acid": request.form.get('breakfast-folic_acid', 0, type=float)
-            },
-            "lunch": {
-                "kcal": request.form.get('lunch-kcal', 0, type=float),
-                "protein": request.form.get('lunch-protein', 0, type=float),
-                "carbohydrates": request.form.get('lunch-carbohydrates', 0, type=float),
-                "calcium": request.form.get('lunch-calcium', 0, type=float),
-                "iron": request.form.get('lunch-iron', 0, type=float),
-                "folic_acid": request.form.get('lunch-folic_acid', 0, type=float)
-            },
-            "dinner": {
-                "kcal": request.form.get('dinner-kcal', 0, type=float),
-                "protein": request.form.get('dinner-protein', 0, type=float),
-                "carbohydrates": request.form.get('dinner-carbohydrates', 0, type=float),
-                "calcium": request.form.get('dinner-calcium', 0, type=float),
-                "iron": request.form.get('dinner-iron', 0, type=float),
-                "folic_acid": request.form.get('dinner-folic_acid', 0, type=float)
-            }
-            # Add "snacks" here if you track them
-        }
-        
-        plan_title = request.form.get('plan_title', 'Custom Plan')
-
-        # 2. Use the new upsert function
-        upsert_nutrition_plan(mother_id, plan_title, required_nutrients)
-
-        flash(f"Nutrition plan for {mother.get('name')} updated successfully!", "success")
-        return redirect(url_for('doctor_patient_profile', mother_id=mother_id))
-
-    # === GET Request: Show the form ===
-    today = datetime.now().strftime("%Y-%m-%d")
-    active_plan = get_active_plan_for_mother_and_date(mother_id, today)
-    
-    return render_template("doctor_profile.html", 
-                           mother=mother, 
-                           plan=active_plan, # This is her saved plan (or None)
-                           presets=json.dumps(RDA_PRESETS) # Pass presets as JSON
-                          )
+  
 # @app.route("/doctor/patient/<string:mother_id>", methods=["GET", "POST"])
 # def doctor_patient_profile(mother_id):
 #     # Security check: Ensure doctor is logged in and assigned this mother
