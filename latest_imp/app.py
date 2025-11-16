@@ -314,10 +314,15 @@ def doctor_patient_profile(mother_id):
     today = datetime.now().strftime("%Y-%m-%d")
     active_plan = get_active_plan_for_mother_and_date(mother_id, today)
     
+    # Fetch queries for this mother
+    from models import db
+    queries = list(db.get_collection('queries').find({"motherId": mother_id}).sort("createdAt", -1))
+    
     return render_template("doctor_profile.html", 
                            mother=mother, 
                            plan=active_plan, # This is her saved plan (or None)
-                           presets=json.dumps(RDA_PRESETS) # Pass presets as JSON
+                           presets=json.dumps(RDA_PRESETS), # Pass presets as JSON
+                           queries=queries # Pass queries for this mother
                           )
 
 @app.route("/api/mothers/assigned/<doctor_id>", methods=["GET"])
@@ -587,6 +592,34 @@ def get_mother_queries(mother_id):
     for q in queries:
         q["_id"] = str(q["_id"])
     return jsonify(queries)
+
+# Doctor responds to a query
+@app.route("/query/<query_id>/respond", methods=["POST"])
+def respond_to_query(query_id):
+    if session.get('role') != 'doctor':
+        return redirect(url_for('login'))
+    
+    response_text = request.form.get('response')
+    if not response_text:
+        flash("Response cannot be empty.", "error")
+        return redirect(request.referrer or url_for('doctor_page'))
+    
+    from models import db
+    try:
+        db.get_collection('queries').update_one(
+            {"_id": ObjectId(query_id)},
+            {"$set": {
+                "response": response_text,
+                "respondedAt": datetime.utcnow(),
+                "respondedBy": session.get('user_id'),
+                "status": "answered"
+            }}
+        )
+        flash("Response sent successfully!", "success")
+    except Exception as e:
+        flash(f"Error sending response: {e}", "error")
+    
+    return redirect(request.referrer or url_for('doctor_page'))
 
 # API: Remaining nutrients for the day
 @app.route("/api/nutrients/remaining/<mother_id>", methods=["GET"])
