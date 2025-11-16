@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify, render_template, redirect, url_for,session,flash
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH, SECRET_KEY
-from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers
+from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,upsert_nutrition_plan,get_user_by_id
 from utils.ocr_dummy import analyze_image_dummy
 from bson.objectid import ObjectId
 from datetime import datetime
@@ -147,7 +147,15 @@ def mother_page():
 def doctor_page():
     if session.get('role') != 'doctor':
         return redirect(url_for('login'))
-    return render_template("doctor.html", doctor_id=session['user_id'])
+    
+    # This page will now list the doctor's assigned mothers
+    doctor_id = session['user_id']
+    mothers = get_assigned_mothers(doctor_id)
+    
+    return render_template("doctor.html", 
+                           doctor_id=doctor_id, 
+                           mothers=mothers)
+
 # In app.py
 @app.route("/api/mothers/assigned/<doctor_id>", methods=["GET"])
 def get_assigned_mothers_api(doctor_id):
@@ -293,7 +301,66 @@ def upload_meal():
 }), 201
 
 
+@app.route("/doctor/patient/<string:mother_id>", methods=["GET", "POST"])
+def doctor_patient_profile(mother_id):
+    # Security check: Ensure doctor is logged in and assigned this mother
+    if session.get('role') != 'doctor':
+        return redirect(url_for('login'))
+        
+    mother = get_user_by_id(mother_id)
+    if not mother or mother.get("assigned_doctor_id") != session.get("user_id"):
+        flash("Unauthorized: You are not assigned to this patient.", "error")
+        return redirect(url_for('doctor_page'))
 
+    if request.method == "POST":
+        # === Form is being submitted, save the data ===
+        
+        # 1. Build the required_nutrients dictionary from the form
+        required_nutrients = {
+            "breakfast": {
+                "kcal": request.form.get('breakfast-kcal', 0, type=float),
+                "protein": request.form.get('breakfast-protein', 0, type=float),
+                "carbohydrates": request.form.get('breakfast-carbohydrates', 0, type=float),
+                "calcium": request.form.get('breakfast-calcium', 0, type=float),
+                "iron": request.form.get('breakfast-iron', 0, type=float),
+                "folic_acid": request.form.get('breakfast-folic_acid', 0, type=float)
+            },
+            "lunch": {
+                "kcal": request.form.get('lunch-kcal', 0, type=float),
+                "protein": request.form.get('lunch-protein', 0, type=float),
+                "carbohydrates": request.form.get('lunch-carbohydrates', 0, type=float),
+                "calcium": request.form.get('lunch-calcium', 0, type=float),
+                "iron": request.form.get('lunch-iron', 0, type=float),
+                "folic_acid": request.form.get('lunch-folic_acid', 0, type=float)
+            },
+            "dinner": {
+                "kcal": request.form.get('dinner-kcal', 0, type=float),
+                "protein": request.form.get('dinner-protein', 0, type=float),
+                "carbohydrates": request.form.get('dinner-carbohydrates', 0, type=float),
+                "calcium": request.form.get('dinner-calcium', 0, type=float),
+                "iron": request.form.get('dinner-iron', 0, type=float),
+                "folic_acid": request.form.get('dinner-folic_acid', 0, type=float)
+            }
+            # Add "snacks" here if you track them
+        }
+        
+        plan_title = request.form.get('plan_title', 'Custom Plan')
+
+        # 2. Use the new upsert function
+        upsert_nutrition_plan(mother_id, plan_title, required_nutrients)
+
+        flash(f"Nutrition plan for {mother.get('name')} updated successfully!", "success")
+        return redirect(url_for('doctor_patient_profile', mother_id=mother_id))
+
+    # === GET Request: Show the form ===
+    today = datetime.now().strftime("%Y-%m-%d")
+    active_plan = get_active_plan_for_mother_and_date(mother_id, today)
+    
+    return render_template("doctor_profile.html", 
+                           mother=mother, 
+                           plan=active_plan, # This is her saved plan (or None)
+                           presets=json.dumps(RDA_PRESETS) # Pass presets as JSON
+                          )
 
 @app.route("/api/meals/<meal_id>", methods=["GET"])
 def get_meal_api(meal_id):
