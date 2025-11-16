@@ -107,13 +107,67 @@
         z-index: 9999;
         cursor: pointer;
     }
-    .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-    .modal-content { background-color: #fff; margin: 5% auto; padding: 30px; border-radius: 12px; width: 90%; max-width: 700px; }
-    .close-modal { color: #aaa; float: right; font-size: 32px; font-weight: bold; cursor: pointer; }
+    .modal { 
+        display: none; 
+        position: fixed; 
+        z-index: 10000; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        height: 100%; 
+        background-color: rgba(0,0,0,0.5); 
+        overflow-y: auto; /* Allow scrolling in modal background */
+    }
+    .modal-content { 
+        background-color: #fff; 
+        margin: 5% auto; 
+        padding: 30px; 
+        border-radius: 12px; 
+        width: 90%; 
+        max-width: 700px; 
+        max-height: 85vh; /* Limit height to 85% of viewport */
+        overflow-y: auto; /* Allow scrolling inside modal content */
+    }
+    .close-modal { 
+        color: #aaa; 
+        float: right; 
+        font-size: 32px; 
+        font-weight: bold; 
+        cursor: pointer; 
+    }
+    .close-modal:hover {
+        color: #000;
+    }
     /* ... (keep query history styles) ... */
-    .query-history-item { background: #f8f9fa; border-left: 4px solid #007bff; padding: 12px; margin-bottom: 12px; border-radius: 6px; }
-    .query-answer { background: #e6f7ff; border-left: 4px solid #28a745; padding: 10px; margin-top: 8px; border-radius: 4px; }
-    #queryModal textarea { width: 100%; min-height: 100px; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; }
+    .query-history-item { 
+        background: #f8f9fa; 
+        border-left: 4px solid #007bff; 
+        padding: 12px; 
+        margin-bottom: 12px; 
+        border-radius: 6px; 
+    }
+    .query-answer { 
+        background: #e6f7ff; 
+        border-left: 4px solid #28a745; 
+        padding: 12px; 
+        margin-top: 8px; 
+        border-radius: 4px; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .query-answer p {
+        font-size: 1em;
+        line-height: 1.5;
+        margin: 6px 0 0 0;
+    }
+    #queryModal textarea { 
+        width: 100%; 
+        min-height: 100px; 
+        padding: 10px; 
+        border: 1px solid #ced4da; 
+        border-radius: 6px; 
+        resize: vertical;
+        font-family: inherit;
+    }
 </style>
 
 <h2>Your Daily Recommendation</h2>
@@ -330,8 +384,34 @@ window.addEventListener("load", () => {
 </script>
 
 <button class="floating-btn" id="openQueryBtn" title="Ask a Question">?</button>
+
+<!-- Query Modal -->
 <div id="queryModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" id="closeModal">&times;</span>
+        <h2 style="margin-top: 0; color: #007bff;">📩 Ask a Question</h2>
+        
+        <form id="queryForm">
+            <label for="querySubject" style="font-weight: 600; margin-bottom: 4px;">Subject</label>
+            <input type="text" id="querySubject" name="subject" required style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; margin-bottom: 12px;" />
+            
+            <label for="queryMessage" style="font-weight: 600; margin-bottom: 4px;">Your Question</label>
+            <textarea id="queryMessage" name="message" required></textarea>
+            
+            <button type="submit" style="background: #007bff; color: #fff; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold;">Send Query</button>
+        </form>
+
+        <div id="querySuccess" style="display: none; background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; margin-top: 16px;">
+            ✅ Your query has been sent successfully!
+        </div>
+
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e9ecef;" />
+
+        <h3 style="color: #007bff;">📋 Your Past Queries</h3>
+        <div id="queryHistoryArea"><em style="color: #6c757d;">Loading...</em></div>
     </div>
+</div>
+
 <script>
 // Query Modal functionality
 const modal = document.getElementById("queryModal");
@@ -410,24 +490,57 @@ async function loadQueryHistory() {
         let html = "";
         data.queries.forEach(q => {
             const date = new Date(q.createdAt).toLocaleString();
+            
+            // Determine status badge color
+            let statusColor = '#6c757d'; // default gray
+            if (q.status === 'resolved' || q.status === 'answered') statusColor = '#28a745'; // green
+            else if (q.status === 'in-progress') statusColor = '#007bff'; // blue
+            else if (q.status === 'pending') statusColor = '#ffc107'; // yellow
+            
             html += `
                 <div class="query-history-item">
                     <strong style="color: #007bff;">${q.subject}</strong>
                     <p style="margin: 8px 0; color: #333;">${q.message}</p>
-                    <small style="color: #6c757d;">${date} • Status: <strong>${q.status}</strong></small>
+                    <small style="color: #6c757d;">
+                        ${date} • Status: 
+                        <strong style="color: ${statusColor}; text-transform: uppercase;">
+                            ${q.status}
+                        </strong>
+                    </small>
             `;
             
+            // Show all replies if they exist
             if (q.replies && q.replies.length > 0) {
+                html += `<div style="margin-top: 12px;">`;
                 q.replies.forEach(reply => {
                     const replyDate = new Date(reply.repliedAt).toLocaleString();
                     html += `
                         <div class="query-answer">
-                            <strong style="color: #28a745;">✓ ${reply.doctorName}:</strong>
+                            <strong style="color: #28a745;">✓ ${reply.doctorName} replied:</strong>
                             <p style="margin: 6px 0 0 0; color: #333;">${reply.message}</p>
                             <small style="color: #6c757d;">${replyDate}</small>
                         </div>
                     `;
                 });
+                html += `</div>`;
+            } else if (q.response) {
+                // Handle old-style query format with single 'response' field
+                const replyDate = q.respondedAt ? new Date(q.respondedAt).toLocaleString() : 'Date unavailable';
+                html += `
+                    <div style="margin-top: 12px;">
+                        <div class="query-answer">
+                            <strong style="color: #28a745;">✓ Doctor replied:</strong>
+                            <p style="margin: 6px 0 0 0; color: #333;">${q.response}</p>
+                            <small style="color: #6c757d;">${replyDate}</small>
+                        </div>
+                    </div>
+                `;
+            } else if (q.status === 'pending') {
+                html += `
+                    <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px;">
+                        <small style="color: #856404;">⏳ Waiting for doctor's response...</small>
+                    </div>
+                `;
             }
             
             html += `</div>`;
