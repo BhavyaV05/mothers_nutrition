@@ -1,7 +1,7 @@
 # app.py
 from fastapi import FastAPI
 from pydantic import BaseModel
-from meal_recommender import generate_recommendations
+from meal_recommender.meal_recommender import generate_recommendations
 
 app = FastAPI(title="Mother Nutrition Planner - Meal Recommender API")
 

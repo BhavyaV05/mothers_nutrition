@@ -1,64 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<style>
-  .card {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-    margin-bottom: 24px;
-  }
-  .query-item {
-    border-bottom: 1px solid #e9ecef;
-    padding: 12px 0;
-  }
-  .query-item:last-child {
-    border-bottom: none;
-  }
-  .query-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .query-status {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    font-weight: 600;
-  }
-  .status-open {
-    background: #fff3cd;
-    color: #856404;
-  }
-  .status-closed {
-    background: #d4edda;
-    color: #155724;
-  }
-</style>
-
 <div class="card">
-  <h3>Create Daily Nutrient Plan</h3>
-  <form id="planForm">
-    <label>Mother ID</label>
-    <input name="motherId" value="m_1" required />
+    <h2>Mother Tracking Dashboard</h2>
+    <p>Select a mother below to view their meal history, nutrient totals, and make plan adjustments.</p>
 
-    <label>Title</label>
-    <input name="title" value="Daily Requirement Plan" />
+    <input type="hidden" id="doctorId" value="{{ doctor_id }}" />
 
-    <label>Required Nutrients (meal-wise JSON)</label>
-    <textarea name="required_nutrients" rows="8">
-{
-  "breakfast": {"kcal": 400, "protein_g": 15, "carb_g": 50, "fat_g": 10},
-  "lunch": {"kcal": 700, "protein_g": 25, "carb_g": 90, "fat_g": 20},
-  "dinner": {"kcal": 700, "protein_g": 25, "carb_g": 90, "fat_g": 20},
-  "snack": {"kcal": 300, "protein_g": 10, "carb_g": 40, "fat_g": 8}
-}
-    </textarea>
-
-    <button type="submit" style="margin-top:12px;">Save Plan</button>
-  </form>
-  <div id="planResult"><em>No plan created yet.</em></div>
+    <div id="motherListContainer">
+        
+        <ul id="motherList" class="mother-list">
+            </ul>
+    </div>
 </div>
 
 <div class="card">
@@ -68,18 +20,33 @@
 </div>
 
 <script>
-document.getElementById("planForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const f = e.target;
-  const motherId = f.elements["motherId"].value.trim();
-  const title = f.elements["title"].value;
-  let required_nutrients;
-  try {
-    required_nutrients = JSON.parse(f.elements["required_nutrients"].value);
-  } catch (err) {
-    document.getElementById("planResult").innerHTML = "<pre>Invalid JSON for required_nutrients</pre>";
-    return;
-  }
+    function getDoctorId() {
+        return document.getElementById("doctorId").value.trim();
+    }
+
+    async function loadAssignedMothers() {
+        const doctorId = getDoctorId();
+        const listElement = document.getElementById("motherList");
+        listElement.innerHTML = ''; // Clear loading message
+
+        if (!doctorId) {
+            listElement.innerHTML = "<li>Error: Doctor ID not found in session.</li>";
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/mothers/assigned/${doctorId}`);
+            const mothers = await res.json();
+
+            if (!res.ok) {
+                listElement.innerHTML = `<li>Error loading data: ${mothers.error || 'Check server logs.'}</li>`;
+                return;
+            }
+
+            if (mothers.length === 0) {
+                listElement.innerHTML = "<li>You currently have no mothers assigned.</li>";
+                return;
+            }
 
   const payload = { motherId, title, required_nutrients };
   const res = await fetch("/api/nutrition-plans", {
@@ -90,48 +57,6 @@ document.getElementById("planForm").addEventListener("submit", async (e) => {
   const data = await res.json();
   document.getElementById("planResult").innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
 });
-
-// Load queries
-async function loadQueries() {
-  try {
-    const res = await fetch("/api/queries");
-    const queries = await res.json();
-    
-    if (!Array.isArray(queries) || queries.length === 0) {
-      document.getElementById("queriesArea").innerHTML = "<em>No queries yet.</em>";
-      return;
-    }
-    
-    let html = "";
-    queries.forEach(q => {
-      const statusClass = q.status === "open" ? "status-open" : "status-closed";
-      const date = new Date(q.createdAt).toLocaleString();
-      
-      html += `
-        <div class="query-item">
-          <div class="query-header">
-            <strong>${q.subject}</strong>
-            <span class="query-status ${statusClass}">${q.status.toUpperCase()}</span>
-          </div>
-          <p style="margin: 8px 0; color: #555;">${q.message}</p>
-          <small style="color: #6c757d;">
-            From Mother ID: <code>${q.motherId}</code> • ${date}
-          </small>
-        </div>
-      `;
-    });
-    
-    document.getElementById("queriesArea").innerHTML = html;
-  } catch (err) {
-    document.getElementById("queriesArea").innerHTML = "<em>Failed to load queries.</em>";
-  }
-}
-
-// Refresh button
-document.getElementById("refreshQueries").addEventListener("click", loadQueries);
-
-// Load on page load
-window.addEventListener("load", loadQueries);
 </script>
 
 {% endblock %}
