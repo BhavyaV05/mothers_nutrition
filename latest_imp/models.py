@@ -165,7 +165,6 @@ def get_active_plan_for_mother_and_date(mother_id, meal_date):
     )
     return plan
 
-<<<<<<< HEAD
 # --- ASHA helper functions ---
 
 def assign_mother_to_asha(asha_id, mother_id):
@@ -224,7 +223,6 @@ def triage_alert(alert_id, asha_id, action, notes=None, escalate_to_doctor=False
     if updated:
         updated["_id"] = str(updated["_id"])
     return updated
-=======
 # ============================================
 # QUERY-RELATED FUNCTIONS
 # ============================================
@@ -346,4 +344,3 @@ def update_query_status(query_id, status):
             updated_query["doctorId"] = str(updated_query["doctorId"])
     
     return updated_query
->>>>>>> 8efa7cb7f39745c07b9fe2c4bf1062e15aafe02e
