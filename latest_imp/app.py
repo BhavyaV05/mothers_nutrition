@@ -505,16 +505,16 @@ def upload_meal():
                            plan=active_plan, # This is her saved plan (or None)
                            presets=json.dumps(RDA_PRESETS) # Pass presets as JSON
                           )
-@app.route("/doctor/patient/<string:mother_id>", methods=["GET", "POST"])
-def doctor_patient_profile(mother_id):
-    # Security check: Ensure doctor is logged in and assigned this mother
-    if session.get('role') != 'doctor':
-        return redirect(url_for('login'))
+# @app.route("/doctor/patient/<string:mother_id>", methods=["GET", "POST"])
+# def doctor_patient_profile(mother_id):
+#     # Security check: Ensure doctor is logged in and assigned this mother
+#     if session.get('role') != 'doctor':
+#         return redirect(url_for('login'))
         
-    mother = get_user_by_id(mother_id)
-    if not mother or mother.get("assigned_doctor_id") != session.get("user_id"):
-        flash("Unauthorized: You are not assigned to this patient.", "error")
-        return redirect(url_for('doctor_page'))
+#     mother = get_user_by_id(mother_id)
+#     if not mother or mother.get("assigned_doctor_id") != session.get("user_id"):
+#         flash("Unauthorized: You are not assigned to this patient.", "error")
+#         return redirect(url_for('doctor_page'))
     
 @app.route("/api/meals/<meal_id>", methods=["GET"])
 def get_meal_api(meal_id):
