@@ -62,12 +62,32 @@
             <label for="age">Age:</label>
             <input type="number" id="age" name="age" min="15" max="55">
 
-            <label for="gender">Gender:</label>
-            <select id="gender" name="gender">
-                <option value="female">Female</option>
-                <option value="other">Other</option>
+            <label for="cuisine_preference">Preferred Cuisine: </label>
+            <select id="cuisine_preference" name="cuisine_preference">
+                <option value="North Indian">North Indian</option>
+                <option value="South Indian">South Indian</option>
+                <option value="West Indian">West Indian</option>
+                <option value="East Indian">East Indian</option>
+                <option value="Western">Western</option>
+                <option value="Asian">Asian</option>
             </select>
+            <label for="allergies">Allergies:</label>
+            <select id="allergies" name="allergies">
+                <option value="Dairy">Dairy</option>
+                <option value="Egg">Egg</option>
+                <option value="Gluten/Wheat">Gluten/Wheat</option>
+                <option value="Cocoa">Cocoa</option>
+                <option value="Nuts/Peanut">Nuts/peanuts</option>
+            </select>
+            <!-- <div>
+    <label for="cuisine_preference">Preferred Cuisine (optional):</label>
+    <input type="text" id="cuisine_preference" name="cuisine_preference" placeholder="e.g., North Indian, South Indian">
+</div>
 
+<div>
+    <label for="allergies">Allergies (optional):</label>
+    <input type="text" id="allergies" name="allergies" placeholder="e.g., dairy, peanuts, gluten (comma-separated)">
+</div> -->
             <label for="state">State / Region:</label>
             <select id="state" name="state">
                 {% for state in states %}

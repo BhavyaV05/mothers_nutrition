@@ -242,10 +242,25 @@
 </div>
 
 
-<div class="card">
-    <h3>Remaining Nutrients for Today</h3>
-    <div id="remainingNutrients"><em>Loading...</em></div>
-</div>
+<h2>Your Daily Recommendation</h2>
+
+{% if latest_recommendation %}
+    <div class="recommendation-box">
+        <p><strong>{{ latest_recommendation.reason }}</strong></p>
+        
+        <h3>For your next meal, try: {{ latest_recommendation['Dish Name'] }}</h3>
+        
+        <p>
+            We found a recipe for you:
+            <a href="{{ latest_recommendation['recipe_link'] }}" target="_blank">
+                View Recipe
+            </a>
+        </p>
+    </div>
+{% else %}
+    <p>You're doing great! No specific recommendations right now.</p>
+{% endif %}
+
 <div class="card" style="background-color: #e9f5ff;">
     <h3>Assigned Doctor</h3>
     <div id="doctorDetails"><em>Checking assignment...</em></div>
