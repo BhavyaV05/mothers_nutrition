@@ -1,16 +1,15 @@
 # Core ML + Data Processing
-pandas==2.2.3
-numpy==1.26.4
-scikit-learn==1.5.2
+numpy
+pandas
+scikit-learn
 
-# Web API
-fastapi==0.115.0
-uvicorn==0.31.1
-pydantic==2.9.2
+# Database
+pymongo
 
-# Google Gemini API
-google-generativeai==0.8.3
+# Google API
+google-api-python-client
+google-auth
 
-# Utils
-python-dotenv==1.0.1
-tqdm==4.66.5
+# Utilities
+python-dotenv
+certifi
