@@ -3,7 +3,6 @@ from config import MONGO_URI
 from bson.objectid import ObjectId
 from datetime import datetime
 from pymongo import ReturnDocument
-import random
 client = MongoClient(MONGO_URI)
 db = client.get_default_database()
 
@@ -11,45 +10,7 @@ meals_col = db.get_collection("meals")
 plans_col = db.get_collection("nutrition_plans")
 # mothers_col = db.get_collection("mothers")
 users_col = db.get_collection("users")
-def get_random_doctor_id():
-    """
-    Fetches the ObjectId (as a string) of a random user with the role 'doctor'.
-    Uses count and skip for efficient random selection.
-    """
-    
-    # 1. Get the count of doctor documents
-    doctor_count = users_col.count_documents({"role": "doctor"})
-    if doctor_count == 0:
-        return None
-    
-    # 2. Skip a random number of documents
-    random_skip = random.randint(0, doctor_count - 1)
-    
-    # 3. Find one doctor, skipping the random amount, and projecting only the ID
-    doctor_doc = users_col.find_one(
-        {"role": "doctor"},
-        skip=random_skip,
-        projection={"_id": 1} 
-    )
-    
-    return str(doctor_doc['_id']) if doctor_doc else None
-def get_assigned_mothers(doctor_id):
-    """Fetches a list of mothers assigned to a specific doctor."""
-    try:
-        # Use ObjectId to query by the doctor's ID
-        mothers = list(users_col.find(
-            {"role": "mother", "assigned_doctor_id": doctor_id},
-            {"name": 1, "email": 1, "location_state": 1} # Project necessary fields
-        ).sort("name", 1))
-
-        # Convert ObjectIds to strings for safe JSON/template use
-        for mother in mothers:
-            mother['_id'] = str(mother['_id'])
-            
-        return mothers
-    except Exception as e:
-        print(f"Error fetching assigned mothers: {e}")
-        return []
+queries_col = db.get_collection("queries")  # New collection for queries
 def get_user_by_email_and_role(email, role):
     """Find a user by email and role for login authentication."""
     user = users_col.find_one({"email": email, "role": role})
@@ -165,3 +126,125 @@ def get_active_plan_for_mother_and_date(mother_id, meal_date):
         sort=[("createdAt", -1)]
     )
     return plan
+
+# ============================================
+# QUERY-RELATED FUNCTIONS
+# ============================================
+
+def create_query(mother_id, subject, message, category="general"):
+    """Create a new query from mother."""
+    mother = users_col.find_one({"_id": ObjectId(mother_id)})
+    
+    query_doc = {
+        "motherId": ObjectId(mother_id),
+        "motherName": mother.get("name", "Unknown") if mother else "Unknown",
+        "motherEmail": mother.get("email", ""),
+        "subject": subject,
+        "message": message,
+        "category": category,
+        "status": "pending",
+        "priority": "normal",
+        "doctorId": None,
+        "replies": [],
+        "createdAt": datetime.utcnow(),
+        "updatedAt": datetime.utcnow()
+    }
+    
+    result = queries_col.insert_one(query_doc)
+    query_doc["_id"] = str(result.inserted_id)
+    return query_doc
+
+def get_queries_by_mother(mother_id, status=None):
+    """Get all queries created by a specific mother."""
+    filter_query = {"motherId": ObjectId(mother_id)}
+    if status:
+        filter_query["status"] = status
+    
+    queries = list(queries_col.find(filter_query).sort("createdAt", -1))
+    for q in queries:
+        q["_id"] = str(q["_id"])
+        q["motherId"] = str(q["motherId"])
+        if q.get("doctorId"):
+            q["doctorId"] = str(q["doctorId"])
+    return queries
+
+def get_all_queries(status=None, category=None):
+    """Get all queries (for doctors)."""
+    filter_query = {}
+    if status:
+        filter_query["status"] = status
+    if category:
+        filter_query["category"] = category
+    
+    queries = list(queries_col.find(filter_query).sort("createdAt", -1))
+    for q in queries:
+        q["_id"] = str(q["_id"])
+        q["motherId"] = str(q["motherId"])
+        if q.get("doctorId"):
+            q["doctorId"] = str(q["doctorId"])
+    return queries
+
+def get_query_by_id(query_id):
+    """Get a specific query by ID."""
+    try:
+        query = queries_col.find_one({"_id": ObjectId(query_id)})
+        if query:
+            query["_id"] = str(query["_id"])
+            query["motherId"] = str(query["motherId"])
+            if query.get("doctorId"):
+                query["doctorId"] = str(query["doctorId"])
+        return query
+    except Exception:
+        return None
+
+def add_reply_to_query(query_id, doctor_id, message, update_status=None):
+    """Add a doctor's reply to a query."""
+    doctor = users_col.find_one({"_id": ObjectId(doctor_id)})
+    
+    reply_doc = {
+        "doctorId": str(doctor_id),
+        "doctorName": doctor.get("name", "Doctor") if doctor else "Doctor",
+        "message": message,
+        "repliedAt": datetime.utcnow()
+    }
+    
+    update_data = {
+        "$push": {"replies": reply_doc},
+        "$set": {
+            "updatedAt": datetime.utcnow(),
+            "doctorId": ObjectId(doctor_id)
+        }
+    }
+    
+    if update_status:
+        update_data["$set"]["status"] = update_status
+    
+    updated_query = queries_col.find_one_and_update(
+        {"_id": ObjectId(query_id)},
+        update_data,
+        return_document=ReturnDocument.AFTER
+    )
+    
+    if updated_query:
+        updated_query["_id"] = str(updated_query["_id"])
+        updated_query["motherId"] = str(updated_query["motherId"])
+        if updated_query.get("doctorId"):
+            updated_query["doctorId"] = str(updated_query["doctorId"])
+    
+    return updated_query
+
+def update_query_status(query_id, status):
+    """Update the status of a query."""
+    updated_query = queries_col.find_one_and_update(
+        {"_id": ObjectId(query_id)},
+        {"$set": {"status": status, "updatedAt": datetime.utcnow()}},
+        return_document=ReturnDocument.AFTER
+    )
+    
+    if updated_query:
+        updated_query["_id"] = str(updated_query["_id"])
+        updated_query["motherId"] = str(updated_query["motherId"])
+        if updated_query.get("doctorId"):
+            updated_query["doctorId"] = str(updated_query["doctorId"])
+    
+    return updated_query
