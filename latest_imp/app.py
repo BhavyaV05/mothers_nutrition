@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH, SECRET_KEY
 from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,upsert_nutrition_plan,get_user_by_id
 
+
 from utils.ocr_dummy import analyze_image_dummy
 from bson.objectid import ObjectId
 from datetime import datetime
@@ -20,6 +21,7 @@ from models import db
 from presets import RDA_PRESETS
 
 # from routes.auth import auth_bp
+from routes.queries import queries_bp  # Import the queries blueprint
 INDIAN_STATES = [
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
     "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
@@ -62,6 +64,10 @@ def assign_random_asha():
 # -------------------------------------------------
 # INDEX
 # -------------------------------------------------
+# Register blueprints
+app.register_blueprint(queries_bp)
+
+# Simple pages
 @app.route("/")
 def index():
     if "user_id" not in session:
@@ -140,8 +146,8 @@ def signup():
                 error = "Cannot register mother: No doctors available for assignment."
                 return render_template("signup.html", error=error, states=INDIAN_STATES, incomes=INCOME_RANGES, diets=DIETARY_PREFERENCES)
 
+
             user_doc.update({
-                "assigned_doctor_id": assigned_doctor_id,
                 "name": request.form.get("name"),
                 "age": request.form.get("age"),
                 "gender": request.form.get("gender"),
@@ -211,12 +217,7 @@ def logout():
 def mother_page():
     if session.get('role') != 'mother':
         return redirect(url_for('login'))
-    mother_id = session['user_id']
-    mother_data = users_col.find_one({"_id": ObjectId(mother_id)})
-    assigned_doctor_id = mother_data.get("assigned_doctor_id") if mother_data else None
-    return render_template("mother.html", 
-                           mother_id=mother_id, 
-                           assigned_doctor_id=assigned_doctor_id)
+    return render_template("mother.html", mother_id=session['user_id'])
 
 
 
@@ -227,14 +228,7 @@ def mother_page():
 def doctor_page():
     if session.get('role') != 'doctor':
         return redirect(url_for('login'))
-    
-    # This page will now list the doctor's assigned mothers
-    doctor_id = session['user_id']
-    mothers = get_assigned_mothers(doctor_id)
-    
-    return render_template("doctor.html", 
-                           doctor_id=doctor_id, 
-                           mothers=mothers) # Pass mothers to the template
+    return render_template("doctor.html", doctor_id=session['user_id'])
 # In app.py
 @app.route("/asha")
 def asha_page():
@@ -318,6 +312,7 @@ def doctor_patient_profile(mother_id):
                            plan=active_plan, # This is her saved plan (or None)
                            presets=json.dumps(RDA_PRESETS) # Pass presets as JSON
                           )
+
 @app.route("/api/mothers/assigned/<doctor_id>", methods=["GET"])
 def get_assigned_mothers_api(doctor_id):
     # Security check: Ensure the requesting user is the doctor whose ID is being queried (or an admin)
@@ -526,6 +521,7 @@ def get_mother_queries(mother_id):
         q["_id"] = str(q["_id"])
     return jsonify(queries)
 
+# API: Remaining nutrients for the day
 @app.route("/api/nutrients/remaining/<mother_id>", methods=["GET"])
 def get_remaining_nutrients(mother_id):
     today = datetime.now().strftime("%Y-%m-%d")

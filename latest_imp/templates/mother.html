@@ -589,50 +589,55 @@ window.onclick = function(event) {
 // Submit query
 document.getElementById("queryForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const motherId = getMotherId();
     const subject = document.getElementById("querySubject").value;
     const message = document.getElementById("queryMessage").value;
 
-    const formData = new FormData();
-    formData.append("motherId", motherId);
-    formData.append("subject", subject);
-    formData.append("message", message);
-
     try {
-        const res = await fetch("/query", {
+        const res = await fetch("/api/queries/create", {
             method: "POST",
-            body: formData
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                subject: subject,
+                message: message,
+                category: "general"
+            })
         });
 
-        if (res.ok) {
+        const data = await res.json();
+        
+        if (data.success) {
             document.getElementById("querySuccess").style.display = "block";
             document.getElementById("queryForm").reset();
             loadQueryHistory();
             setTimeout(() => {
                 document.getElementById("querySuccess").style.display = "none";
             }, 3000);
+        } else {
+            alert("Failed to send query: " + (data.error || "Unknown error"));
         }
     } catch (err) {
-        alert("Failed to send query. Please try again.");
+        alert("Failed to send query. Please try again. Error: " + err.message);
     }
 });
 
 // Load query history for this mother
 async function loadQueryHistory() {
-    const motherId = getMotherId();
-    if (!motherId) return;
-
     try {
-        const res = await fetch(`/api/queries/mother/${motherId}`);
-        const queries = await res.json();
+        const res = await fetch("/api/queries/my-queries", {
+            credentials: 'include'
+        });
+        const data = await res.json();
 
-        if (!Array.isArray(queries) || queries.length === 0) {
+        if (!data.success || !Array.isArray(data.queries) || data.queries.length === 0) {
             document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #6c757d;'>No queries yet.</em>";
             return;
         }
 
         let html = "";
-        queries.forEach(q => {
+        data.queries.forEach(q => {
             const date = new Date(q.createdAt).toLocaleString();
             html += `
                 <div class="query-history-item">
@@ -641,13 +646,17 @@ async function loadQueryHistory() {
                     <small style="color: #6c757d;">${date} • Status: <strong>${q.status}</strong></small>
             `;
             
-            if (q.response) {
-                html += `
-                    <div class="query-answer">
-                        <strong style="color: #28a745;">✓ Doctor's Response:</strong>
-                        <p style="margin: 6px 0 0 0; color: #333;">${q.response}</p>
-                    </div>
-                `;
+            if (q.replies && q.replies.length > 0) {
+                q.replies.forEach(reply => {
+                    const replyDate = new Date(reply.repliedAt).toLocaleString();
+                    html += `
+                        <div class="query-answer">
+                            <strong style="color: #28a745;">✓ ${reply.doctorName}:</strong>
+                            <p style="margin: 6px 0 0 0; color: #333;">${reply.message}</p>
+                            <small style="color: #6c757d;">${replyDate}</small>
+                        </div>
+                    `;
+                });
             }
             
             html += `</div>`;
@@ -655,6 +664,7 @@ async function loadQueryHistory() {
 
         document.getElementById("queryHistoryArea").innerHTML = html;
     } catch (err) {
+        console.error("Query history error:", err);
         document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #dc3545;'>Failed to load query history.</em>";
     }
 }
