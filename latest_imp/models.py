@@ -11,6 +11,40 @@ meals_col = db.get_collection("meals")
 plans_col = db.get_collection("nutrition_plans")
 # mothers_col = db.get_collection("mothers")
 users_col = db.get_collection("users")
+def get_user_by_id(user_id):
+    """Fetch a user document by their ObjectId."""
+    try:
+        return users_col.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        return None
+def upsert_nutrition_plan(mother_id, title, required_nutrients):
+    """
+    Deactivates old 'active' plans and inserts a new active plan for the mother.
+    """
+    try:
+        # 1. Deactivate any old active plans for this mother
+        plans_col.update_many(
+            {"motherId": mother_id, "status": "active"},
+            {"$set": {"status": "archived", "archivedAt": datetime.utcnow()}}
+        )
+        
+        # 2. Insert the new active plan
+        plan_doc = {
+            "motherId": mother_id,
+            "title": title,
+            "required_nutrients": required_nutrients, # This is the full dict
+            "status": "active",
+            "createdAt": datetime.utcnow()
+        }
+        res = plans_col.insert_one(plan_doc)
+        
+        # 3. Return the new document
+        plan_doc["_id"] = str(res.inserted_id)
+        return plan_doc
+        
+    except Exception as e:
+        print(f"Error upserting nutrition plan: {e}")
+        return None
 def get_random_doctor_id():
     """
     Fetches the ObjectId (as a string) of a random user with the role 'doctor'.

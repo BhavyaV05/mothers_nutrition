@@ -1,130 +1,55 @@
-{% extends "base.html" %}
-{% block content %}
-
-<style>
-    /* Use the same basic card styling for consistency */
-    .card {
-        background-color: #ffffff;
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        padding: 24px;
-        margin-bottom: 24px;
-    }
-    h2 {
-        color: #007bff;
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 8px;
-        margin-bottom: 20px;
-    }
-    .mother-list {
-        list-style: none;
-        padding: 0;
-    }
-    .mother-item {
-        border-bottom: 1px solid #eee;
-        padding: 15px 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .mother-item:last-child {
-        border-bottom: none;
-    }
-    .mother-info strong {
-        font-size: 1.1em;
-        color: #333;
-    }
-    .mother-info small {
-        display: block;
-        color: #6c757d;
-    }
-    .track-button {
-        background-color: #28a745; /* Green color for tracking */
-        color: white;
-        text-decoration: none;
-        padding: 8px 15px;
-        border-radius: 6px;
-        font-weight: bold;
-        transition: background-color 0.2s;
-    }
-    .track-button:hover {
-        background-color: #1e7e34;
-    }
-</style>
-
-<div class="card">
-    <h2>Mother Tracking Dashboard</h2>
-    <p>Select a mother below to view their meal history, nutrient totals, and make plan adjustments.</p>
-
-    <input type="hidden" id="doctorId" value="{{ doctor_id }}" />
-
-    <div id="motherListContainer">
-        
-        <ul id="motherList" class="mother-list">
-            </ul>
-    </div>
-</div>
-
-<script>
-    function getDoctorId() {
-        return document.getElementById("doctorId").value.trim();
-    }
-
-    async function loadAssignedMothers() {
-        const doctorId = getDoctorId();
-        const listElement = document.getElementById("motherList");
-        listElement.innerHTML = ''; // Clear loading message
-
-        if (!doctorId) {
-            listElement.innerHTML = "<li>Error: Doctor ID not found in session.</li>";
-            return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { color: #333; }
+        .patient-list { list-style: none; padding: 0; }
+        .patient-list li {
+            background: #f4f4f4;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        try {
-            const res = await fetch(`/api/mothers/assigned/${doctorId}`);
-            const mothers = await res.json();
-
-            if (!res.ok) {
-                listElement.innerHTML = `<li>Error loading data: ${mothers.error || 'Check server logs.'}</li>`;
-                return;
-            }
-
-            if (mothers.length === 0) {
-                listElement.innerHTML = "<li>You currently have no mothers assigned.</li>";
-                return;
-            }
-
-            mothers.forEach(mother => {
-                const item = document.createElement('li');
-                item.className = 'mother-item';
-                
-                // Display mother info
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'mother-info';
-                infoDiv.innerHTML = `
-                    <strong>${mother.name || 'Anonymous Mother'}</strong> 
-                    <small>${mother.email || 'No email'} | State: ${mother.location_state || 'N/A'}</small>
-                `;
-
-                // Tracking button (placeholder for the next page route)
-                const trackLink = document.createElement('a');
-                trackLink.href = `/doctor/mother/${mother._id}`; // Placeholder route for detailed tracking
-                trackLink.className = 'track-button';
-                trackLink.textContent = 'Track Progress';
-
-                item.appendChild(infoDiv);
-                item.appendChild(trackLink);
-                listElement.appendChild(item);
-            });
-
-        } catch (error) {
-            listElement.innerHTML = `<li>Failed to connect to server: ${error.message}</li>`;
+        .patient-list a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
         }
-    }
+    </style>
+</head>
+<body>
 
-    // Load the list when the page is ready
-    window.addEventListener("load", loadAssignedMothers);
-</script>
+    <h1>Doctor Dashboard</h1>
+    <p>Welcome, Doctor. (Your ID: {{ doctor_id }}) <a href="{{ url_for('logout') }}">Logout</a></p>
 
-{% endblock %}
+    <hr>
+
+    <h2>Your Assigned Patients</h2>
+    
+    {% if mothers %}
+        <ul class="patient-list">
+            {% for mother in mothers %}
+                <li>
+                    <span>
+                        <strong>{{ mother.name }}</strong><br>
+                        <small>{{ mother.email }}</small>
+                    </span>
+                    <a href="{{ url_for('doctor_patient_profile', mother_id=mother._id) }}">
+                        View/Edit Plan
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You have no patients assigned to you yet.</p>
+    {% endif %}
+
+</body>
+</html>
