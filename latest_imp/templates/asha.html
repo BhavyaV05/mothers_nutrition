@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <h2>ASHA Worker Dashboard</h2>
+
+  <button id="refreshBtn">🔄 Refresh</button>
+
+  <h3>Assigned Mothers</h3>
+  <div id="mothersList"><em>Loading...</em></div>
+</div>
+
+<script>
+async function loadAssignedMothers(){
+  const res = await fetch('/api/asha/mothers/{{ asha_id }}');
+  const mothers = await res.json();
+
+  if (!mothers.length){
+    document.getElementById("mothersList").innerHTML = "<em>No mothers assigned</em>";
+    return;
+  }
+
+  let html = "";
+
+  for (let m of mothers){
+    const details = await fetch(`/api/asha/mother_details/${m._id}`).then(r=>r.json());
+
+    html += `
+      <div class="mother-card" style="border:1px solid #ddd; padding:14px; border-radius:8px; margin-bottom:20px;">
+        
+        <h3>${details.profile.name || m.email}</h3>
+        <p><strong>Age:</strong> ${details.profile.age}</p>
+        <p><strong>Gender:</strong> ${details.profile.gender}</p>
+        <p><strong>Location:</strong> ${details.profile.state} (${details.profile.area_type})</p>
+        <p><strong>Income:</strong> ${details.profile.income}</p>
+        <p><strong>Diet:</strong> ${details.profile.diet}</p>
+
+        <h4>Doctor’s Nutrition Plan</h4>
+        ${
+          details.plan && details.plan.required_nutrients
+            ? `<pre style="background:#f3f3f3;padding:10px;border-radius:5px;">
+                ${JSON.stringify(details.plan.required_nutrients, null, 2)}
+              </pre>`
+            : "<em>No active plan</em>"
+        }
+
+        <h4>Weekly Nutrition Summary</h4>
+        ${
+          details.weekly_meals.length
+            ? `<pre style="background:#fafafa;padding:10px;border-radius:5px;">
+                ${JSON.stringify(details.weekly_meals, null, 2)}
+              </pre>`
+            : "<em>No meals uploaded this week</em>"
+        }
+
+        <h4>Alerts</h4>
+        ${
+          details.alerts.length
+            ? details.alerts.map(a => `
+                <div style="border:1px solid #ff6b6b; padding:8px; margin:4px; border-radius:6px;">
+                  <strong>Date:</strong> ${a.mealDate}<br>
+                  <strong>Deficit:</strong>
+                  <pre>${JSON.stringify(a.nutrient_deficit, null, 2)}</pre>
+                </div>
+              `).join('')
+            : "<em>No active alerts</em>"
+        }
+      </div>
+    `;
+  }
+
+  document.getElementById("mothersList").innerHTML = html;
+}
+
+document.getElementById("refreshBtn").addEventListener("click", loadAssignedMothers);
+
+loadAssignedMothers();
+</script>
+
+{% endblock %}

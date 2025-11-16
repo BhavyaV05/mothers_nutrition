@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Sign Up</title>
     <style>
-        /* Basic styling for clarity (matching login.html) */
         body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; }
         .container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 450px; }
         h2 { text-align: center; color: #333; }
@@ -14,100 +13,146 @@
         button:hover { background-color: #1e7e34; }
         .error { color: red; text-align: center; margin-top: 10px; }
         .footer-link { text-align: center; margin-top: 15px; font-size: 0.9em; }
-        #mother-fields { border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px; }
+
+        /* Mother + ASHA field sections */
+        #mother-fields, #asha-fields { 
+            border-top: 1px solid #eee; 
+            margin-top: 15px; 
+            padding-top: 15px; 
+            display: none; 
+        }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <h2>Create an Account</h2>
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
-        <form method="POST">
-            <label for="role">Registering As:</label>
-            <select id="role" name="role" required onchange="toggleMotherFields(this.value)">
-                <option value="mother">Mother</option>
-                <option value="doctor">Doctor</option>
+<div class="container">
+    <h2>Create an Account</h2>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <form method="POST">
+
+        <!-- ROLE -->
+        <label for="role">Registering As:</label>
+        <select id="role" name="role" required onchange="toggleFields(this.value)">
+            <option value="mother">Mother</option>
+            <option value="doctor">Doctor</option>
+            <option value="asha">ASHA Worker</option>
+        </select>
+
+        <!-- NAME -->
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <!-- EMAIL -->
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <!-- PASSWORD -->
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+
+
+        <!-- MOTHER FIELDS -->
+        <div id="mother-fields">
+            <h3>Additional Details (Mother)</h3>
+
+            <label for="age">Age:</label>
+            <input type="number" id="age" name="age" min="15" max="55">
+
+            <label for="gender">Gender:</label>
+            <select id="gender" name="gender">
+                <option value="female">Female</option>
+                <option value="other">Other</option>
             </select>
 
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required>
+            <label for="state">State / Region:</label>
+            <select id="state" name="state">
+                {% for state in states %}
+                    <option value="{{ state }}">{{ state }}</option>
+                {% endfor %}
+            </select>
 
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+            <label for="area_type">Area Type:</label>
+            <select id="area_type" name="area_type">
+                <option value="rural">Rural</option>
+                <option value="urban">Urban</option>
+            </select>
 
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
+            <label for="income">Annual Household Income Range:</label>
+            <select id="income" name="income">
+                {% for income in incomes %}
+                    <option value="{{ income }}">{{ income }}</option>
+                {% endfor %}
+            </select>
 
-            <div id="mother-fields">
-                <h3>Additional Details (Mother)</h3>
-
-                <label for="age">Age:</label>
-                <input type="number" id="age" name="age" min="15" max="55" required>
-                
-                <label for="gender">Gender:</label>
-                <select id="gender" name="gender" required>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                </select>
-
-                <label for="state">State / Region:</label>
-                <select id="state" name="state" required>
-                    {% for state in states %}
-                        <option value="{{ state }}">{{ state }}</option>
-                    {% endfor %}
-                </select>
-
-                <label for="area_type">Area Type:</label>
-                <select id="area_type" name="area_type" required>
-                    <option value="rural">Rural</option>
-                    <option value="urban">Urban</option>
-                </select>
-
-                <label for="income">Annual Household Income Range:</label>
-                <select id="income" name="income" required>
-                    {% for income in incomes %}
-                        <option value="{{ income }}">{{ income }}</option>
-                    {% endfor %}
-                </select>
-
-                <label for="diet">Dietary Preference:</label>
-                <select id="diet" name="diet" required>
-                    {% for diet in diets %}
-                        <option value="{{ diet }}">{{ diet }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <button type="submit">Sign Up</button>
-        </form>
-        <div class="footer-link">
-            Already have an account? <a href="{{ url_for('login') }}">Log In</a>
+            <label for="diet">Dietary Preference:</label>
+            <select id="diet" name="diet">
+                {% for diet in diets %}
+                    <option value="{{ diet }}">{{ diet }}</option>
+                {% endfor %}
+            </select>
         </div>
-    </div>
-    
-    <script>
-        // JavaScript to toggle visibility and required status of mother-specific fields
-        function toggleMotherFields(role) {
-            const motherFieldsDiv = document.getElementById('mother-fields');
-            const inputs = motherFieldsDiv.querySelectorAll('input, select');
-            
-            if (role === 'mother') {
-                motherFieldsDiv.style.display = 'block';
-                inputs.forEach(input => input.required = true);
-            } else {
-                motherFieldsDiv.style.display = 'none';
-                inputs.forEach(input => input.required = false);
-            }
-        }
 
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Set doctor's name field to be required even if mother fields are hidden
-            document.getElementById('name').required = true;
-            // Ensure initial state is correct (default to 'mother' in the select)
-            toggleMotherFields(document.getElementById('role').value);
-        });
-    </script>
+
+        <!-- ASHA FIELDS -->
+        <div id="asha-fields">
+            <h3>ASHA Worker Details</h3>
+
+            <label for="asha_worker_id">Worker ID:</label>
+            <input type="text" id="asha_worker_id" name="asha_worker_id">
+
+            <label for="phone">Phone Number:</label>
+            <input type="tel" id="phone" name="phone">
+
+            <label for="assigned_area">Assigned Village / Area:</label>
+            <input type="text" id="assigned_area" name="assigned_area">
+        </div>
+
+
+        <button type="submit">Sign Up</button>
+    </form>
+
+    <div class="footer-link">
+        Already have an account? <a href="{{ url_for('login') }}">Log In</a>
+    </div>
+</div>
+
+<script>
+function toggleFields(role) {
+    const mother = document.getElementById("mother-fields");
+    const asha = document.getElementById("asha-fields");
+
+    const motherInputs = mother.querySelectorAll("input, select");
+    const ashaInputs = asha.querySelectorAll("input, select");
+
+    if (role === "mother") {
+        mother.style.display = "block";
+        asha.style.display = "none";
+        motherInputs.forEach(i => i.required = true);
+        ashaInputs.forEach(i => i.required = false);
+    }
+    else if (role === "asha") {
+        mother.style.display = "none";
+        asha.style.display = "block";
+        motherInputs.forEach(i => i.required = false);
+        ashaInputs.forEach(i => i.required = true);
+    }
+    else { // Doctor
+        mother.style.display = "none";
+        asha.style.display = "none";
+        motherInputs.forEach(i => i.required = false);
+        ashaInputs.forEach(i => i.required = false);
+    }
+}
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", () => {
+    toggleFields(document.getElementById("role").value);
+});
+</script>
+
 </body>
 </html>

@@ -9,8 +9,15 @@
         .container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 350px; }
         h2 { text-align: center; color: #333; }
         label { display: block; margin-top: 10px; font-weight: bold; }
-        input[type="email"], input[type="password"], select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; margin-top: 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        input[type="email"], input[type="password"], select {
+            width: 100%; padding: 10px; margin-top: 5px;
+            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        button {
+            width: 100%; padding: 10px; margin-top: 20px;
+            background-color: #007bff; color: white; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 16px;
+        }
         button:hover { background-color: #0056b3; }
         .error { color: red; text-align: center; margin-top: 10px; }
         .footer-link { text-align: center; margin-top: 15px; font-size: 0.9em; }
@@ -22,21 +29,25 @@
         {% if error %}
             <p class="error">{{ error }}</p>
         {% endif %}
+
         <form method="POST">
+
             <label for="role">Role:</label>
             <select id="role" name="role" required>
-                <option value="mother">Mother</option>
-                <option value="doctor">Doctor</option>
+                <option value="mother" {% if request.form.get('role') == 'mother' %}selected{% endif %}>Mother</option>
+                <option value="doctor" {% if request.form.get('role') == 'doctor' %}selected{% endif %}>Doctor</option>
+                <option value="asha" {% if request.form.get('role') == 'asha' %}selected{% endif %}>ASHA Worker</option>
             </select>
 
             <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+            <input type="email" id="email" name="email" required value="{{ request.form.get('email', '') }}">
 
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
 
             <button type="submit">Log In</button>
         </form>
+
         <div class="footer-link">
             Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a>
         </div>

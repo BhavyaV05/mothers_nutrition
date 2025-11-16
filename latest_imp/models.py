@@ -125,3 +125,62 @@ def get_active_plan_for_mother_and_date(mother_id, meal_date):
         sort=[("createdAt", -1)]
     )
     return plan
+
+# --- ASHA helper functions ---
+
+def assign_mother_to_asha(asha_id, mother_id):
+    doc = {"ashaId": asha_id, "motherId": mother_id, "assignedAt": datetime.utcnow(), "active": True}
+    res = db.asha_assignments.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+    return doc
+
+def get_mothers_for_asha(asha_id):
+    assignments = list(db.asha_assignments.find({"ashaId": asha_id, "active": True}))
+    mother_ids = [a["motherId"] for a in assignments]
+    mothers = list(users_col.find({"_id": {"$in": [ObjectId(mid) for mid in mother_ids]}}))
+    for m in mothers:
+        m["_id"] = str(m["_id"])
+    return mothers
+
+def create_visit_record(asha_id, mother_id, visit_date, visit_type, observations=None, metrics=None, photos=None, related_alert=None):
+    doc = {
+        "ashaId": asha_id,
+        "motherId": mother_id,
+        "visitDate": visit_date,
+        "type": visit_type,
+        "observations": observations or "",
+        "metrics": metrics or {},
+        "photos": photos or [],
+        "relatedAlertId": related_alert,
+        "status": "completed" if visit_type=="spot-check" else "open",
+        "createdAt": datetime.utcnow()
+    }
+    res = db.visits.insert_one(doc)
+    doc["_id"] = str(res.inserted_id)
+    return doc
+
+def get_visits_for_mother(mother_id, limit=50):
+    visits = list(db.visits.find({"motherId": mother_id}).sort("createdAt", -1).limit(limit))
+    for v in visits:
+        v["_id"] = str(v["_id"])
+    return visits
+
+def get_active_alerts_for_asha(asha_id):
+    # returns alerts for assigned mothers
+    assignments = list(db.asha_assignments.find({"ashaId": asha_id, "active": True}))
+    mother_ids = [a["motherId"] for a in assignments]
+    alerts = list(db.alerts.find({"motherId": {"$in": mother_ids}, "status": "active"}).sort("createdAt", -1))
+    for a in alerts:
+        a["_id"] = str(a["_id"])
+    return alerts
+
+def triage_alert(alert_id, asha_id, action, notes=None, escalate_to_doctor=False):
+    update = {"$set": {"triagedBy": asha_id, "triageNotes": notes, "escalated": escalate_to_doctor}}
+    if action == "resolve":
+        update["$set"]["status"] = "resolved"
+    elif action == "ack":
+        update["$set"]["status"] = "acknowledged"
+    updated = db.alerts.find_one_and_update({"_id": ObjectId(alert_id)}, update, return_document=ReturnDocument.AFTER)
+    if updated:
+        updated["_id"] = str(updated["_id"])
+    return updated
