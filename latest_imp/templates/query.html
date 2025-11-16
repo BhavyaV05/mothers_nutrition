@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .card {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        max-width: 800px;
+        margin: 40px auto;
+    }
+
+    label { font-weight: 600; margin-top: 8px; display:block; }
+    input, textarea, button { width:100%; padding:10px; margin-top:6px; border-radius:6px; border:1px solid #dcdcdc }
+    textarea { min-height:140px; resize:vertical }
+    .muted { color:#6c757d; font-size:0.9em }
+</style>
+
+<div class="card">
+    <h2>Post a Query</h2>
+    <p class="muted">Ask a question to the care team. We'll store your query so a doctor or admin can respond.</p>
+
+    {% if success %}
+        <div style="background:#e6ffed;border:1px solid #c6f6d5;padding:12px;border-radius:8px;margin-bottom:12px;color:#04662b;">✔️ Your query was posted successfully.</div>
+    {% endif %}
+
+    <form method="post" action="/query">
+        <input type="hidden" name="motherId" value="{{ mother_id or session.get('user_id') }}" />
+
+        <label for="subject">Subject</label>
+        <input id="subject" name="subject" required />
+
+        <label for="message">Message</label>
+        <textarea id="message" name="message" required></textarea>
+
+        <button type="submit" style="margin-top:12px; background: #007bff; color:#fff; border:none;">Send Query</button>
+    </form>
+</div>
+
+{% endblock %}
