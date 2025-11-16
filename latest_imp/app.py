@@ -1,12 +1,13 @@
 import os
-from flask import Flask, request, jsonify, render_template, redirect, url_for,session
+from flask import Flask, request, jsonify, render_template, redirect, url_for,session,flash
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH, SECRET_KEY
-from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col
+from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers
 from utils.ocr_dummy import analyze_image_dummy
 from bson.objectid import ObjectId
 from datetime import datetime
 import json
+from presets import RDA_PRESETS
 from werkzeug.security import generate_password_hash, check_password_hash # Add this line
 from routes.queries import queries_bp  # Import the queries blueprint
 INDIAN_STATES = [
@@ -147,6 +148,66 @@ def doctor_page():
     if session.get('role') != 'doctor':
         return redirect(url_for('login'))
     return render_template("doctor.html", doctor_id=session['user_id'])
+# In app.py
+@app.route("/api/mothers/assigned/<doctor_id>", methods=["GET"])
+def get_assigned_mothers_api(doctor_id):
+    # Security check: Ensure the requesting user is the doctor whose ID is being queried (or an admin)
+    if session.get('role') != 'doctor' or session.get('user_id') != doctor_id:
+        return jsonify({"error": "Unauthorized access"}), 403
+
+    mothers = get_assigned_mothers(doctor_id)
+    return jsonify(mothers)
+@app.route("/api/doctor/<doctor_id>", methods=["GET"])
+def get_doctor_details(doctor_id):
+    try:
+        doctor = users_col.find_one({"_id": ObjectId(doctor_id), "role": "doctor"}, 
+                                    {"name": 1, "email": 1, "location": 1}) # Only project safe fields
+        
+        if doctor:
+            doctor['_id'] = str(doctor['_id'])
+            return jsonify(doctor)
+        
+        return jsonify({"error": "Doctor not found"}), 404
+    except Exception:
+        return jsonify({"error": "Invalid Doctor ID"}), 400
+    
+
+
+@app.route("/query", methods=["GET", "POST"])
+def query_page():
+    # Only logged-in mothers may post queries here
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if session.get('role') != 'mother':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        mother_id = session.get('user_id') or request.form.get('motherId')
+
+        if not subject or not message or not mother_id:
+            error = "Subject and message are required."
+            return render_template('query.html', error=error, mother_id=mother_id)
+
+        # Save query in `queries` collection
+        from models import db
+        query_doc = {
+            "motherId": mother_id,
+            "subject": subject,
+            "message": message,
+            "status": "open",
+            "createdAt": datetime.utcnow()
+        }
+        try:
+            db.get_collection('queries').insert_one(query_doc)
+        except Exception as e:
+            error = f"Could not save query: {e}"
+            return render_template('query.html', error=error, mother_id=mother_id)
+
+        return render_template('query.html', success=True, mother_id=mother_id)
+
+    return render_template('query.html', mother_id=session.get('user_id'))
 
 # API: upload meal (mother)
 @app.route("/api/meals/upload", methods=["POST"])

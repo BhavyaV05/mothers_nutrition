@@ -10,7 +10,45 @@ meals_col = db.get_collection("meals")
 plans_col = db.get_collection("nutrition_plans")
 # mothers_col = db.get_collection("mothers")
 users_col = db.get_collection("users")
-queries_col = db.get_collection("queries")  # New collection for queries
+def get_random_doctor_id():
+    """
+    Fetches the ObjectId (as a string) of a random user with the role 'doctor'.
+    Uses count and skip for efficient random selection.
+    """
+    
+    # 1. Get the count of doctor documents
+    doctor_count = users_col.count_documents({"role": "doctor"})
+    if doctor_count == 0:
+        return None
+    
+    # 2. Skip a random number of documents
+    random_skip = random.randint(0, doctor_count - 1)
+    
+    # 3. Find one doctor, skipping the random amount, and projecting only the ID
+    doctor_doc = users_col.find_one(
+        {"role": "doctor"},
+        skip=random_skip,
+        projection={"_id": 1} 
+    )
+    
+    return str(doctor_doc['_id']) if doctor_doc else None
+def get_assigned_mothers(doctor_id):
+    """Fetches a list of mothers assigned to a specific doctor."""
+    try:
+        # Use ObjectId to query by the doctor's ID
+        mothers = list(users_col.find(
+            {"role": "mother", "assigned_doctor_id": doctor_id},
+            {"name": 1, "email": 1, "location_state": 1} # Project necessary fields
+        ).sort("name", 1))
+
+        # Convert ObjectIds to strings for safe JSON/template use
+        for mother in mothers:
+            mother['_id'] = str(mother['_id'])
+            
+        return mothers
+    except Exception as e:
+        print(f"Error fetching assigned mothers: {e}")
+        return []
 def get_user_by_email_and_role(email, role):
     """Find a user by email and role for login authentication."""
     user = users_col.find_one({"email": email, "role": role})
