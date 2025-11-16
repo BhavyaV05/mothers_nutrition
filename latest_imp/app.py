@@ -222,9 +222,32 @@ def logout():
 # -------------------------------------------------
 @app.route("/mother")
 def mother_page():
+    # ensure only mothers can open this page
     if session.get('role') != 'mother':
         return redirect(url_for('login'))
-    return render_template("mother.html", mother_id=session['user_id'])
+
+    user_id = session.get('user_id')
+    # try to fetch the mother's document and extract assigned doctor id
+    try:
+        mother = get_user_by_id(user_id)  # you already import this helper
+    except Exception:
+        mother = None
+
+    if not mother:
+        # fallback: still render page but without assignment
+        return render_template("mother.html", mother_id=user_id, assigned_doctor_id="")
+
+    # The field name you used is 'assigned_doctor_id' in DB (see earlier fix)
+    assigned_doc = mother.get("assigned_doctor_id") or mother.get("assigned_doctor") or ""
+
+    # ensure it's a string (template expects a string)
+    if assigned_doc is None:
+        assigned_doc = ""
+    else:
+        assigned_doc = str(assigned_doc)
+
+    return render_template("mother.html", mother_id=user_id, assigned_doctor_id=assigned_doc)
+
 
 
 
