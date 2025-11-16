@@ -141,6 +141,30 @@
         word-wrap: break-word;
         font-size: 0.9em;
     }
+
+    /* Floating query button */
+    .floating-btn {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+        border: none;
+        font-size: 24px;
+        z-index: 9999;
+        cursor: pointer;
+    }
+
+    .floating-btn:hover {
+        transform: translateY(-3px);
+    }
 </style>
 
 <div id="alertBox"
@@ -395,5 +419,8 @@ window.addEventListener("load", () => {
     loadRemainingNutrients();
 });
 </script>
+
+<!-- Floating Query Button: opens the query posting page -->
+<a class="floating-btn" id="openQueryBtn" href="/query" title="Ask a Question">?</a>
 
 {% endblock %}
