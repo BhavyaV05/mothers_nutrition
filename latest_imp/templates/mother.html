@@ -646,6 +646,17 @@ async function loadQueryHistory() {
                     <small style="color: #6c757d;">${date} • Status: <strong>${q.status}</strong></small>
             `;
             
+            // Support old response field (single response)
+            if (q.response) {
+                html += `
+                    <div class="query-answer">
+                        <strong style="color: #28a745;">✓ Doctor's Response:</strong>
+                        <p style="margin: 6px 0 0 0; color: #333;">${q.response}</p>
+                    </div>
+                `;
+            }
+            
+            // Support new replies array (multiple responses)
             if (q.replies && q.replies.length > 0) {
                 q.replies.forEach(reply => {
                     const replyDate = new Date(reply.repliedAt).toLocaleString();

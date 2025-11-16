@@ -74,8 +74,9 @@
                 <div class="query-item">
                     <div class="query-header">
                         <strong style="color: #007bff;">{{ query.subject }}</strong>
-                        <span class="query-status {{ 'status-answered' if query.response else 'status-open' }}">
-                            {{ 'ANSWERED' if query.response else 'OPEN' }}
+                        {% set has_response = query.response or (query.replies and query.replies|length > 0) %}
+                        <span class="query-status {{ 'status-answered' if has_response else 'status-open' }}">
+                            {{ 'ANSWERED' if has_response else 'OPEN' }}
                         </span>
                     </div>
                     <p style="margin: 8px 0; color: #333;">{{ query.message }}</p>
@@ -86,7 +87,17 @@
                         <strong style="color: #28a745;">✓ Your Response:</strong>
                         <p style="margin: 6px 0 0 0;">{{ query.response }}</p>
                     </div>
-                    {% else %}
+                    {% elif query.replies and query.replies|length > 0 %}
+                        {% for reply in query.replies %}
+                        <div class="query-response">
+                            <strong style="color: #28a745;">✓ {{ reply.doctorName }}:</strong>
+                            <p style="margin: 6px 0 0 0;">{{ reply.message }}</p>
+                            <small style="color: #6c757d;">{{ reply.repliedAt.strftime('%Y-%m-%d %H:%M') if reply.repliedAt else '' }}</small>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if not has_response %}
                     <div class="response-form">
                         <form method="POST" action="{{ url_for('respond_to_query', query_id=query._id) }}">
                             <textarea name="response" placeholder="Type your response here..." required></textarea>

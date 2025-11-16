@@ -345,9 +345,23 @@ def doctor_patient_profile(mother_id):
     today = datetime.now().strftime("%Y-%m-%d")
     active_plan = get_active_plan_for_mother_and_date(mother_id, today)
     
-    # Fetch queries for this mother
+    # Fetch queries for this mother assigned to current doctor
     from models import db
-    queries = list(db.get_collection('queries').find({"motherId": mother_id}).sort("createdAt", -1))
+    doctor_id = session.get('user_id')
+    
+    # Debug: Check all queries for this mother
+    all_mother_queries = list(db.get_collection('queries').find({"motherId": ObjectId(mother_id)}))
+    print(f"DEBUG: Found {len(all_mother_queries)} total queries for mother {mother_id}")
+    
+    # Fetch queries with both filters
+    queries = list(db.get_collection('queries').find({
+        "motherId": ObjectId(mother_id),
+        "doctorId": ObjectId(doctor_id)
+    }).sort("createdAt", -1))
+    
+    print(f"DEBUG: Found {len(queries)} queries for mother {mother_id} and doctor {doctor_id}")
+    if all_mother_queries:
+        print(f"DEBUG: Sample query doctorId: {all_mother_queries[0].get('doctorId')}, Expected: {ObjectId(doctor_id)}")
     
     return render_template("doctor_profile.html", 
                            mother=mother, 

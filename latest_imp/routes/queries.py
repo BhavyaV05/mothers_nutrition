@@ -70,6 +70,14 @@ def create_query():
     if not mother:
         return jsonify({"error": "Mother not found"}), 404
     
+    # Get assigned doctor ID from mother's profile
+    assigned_doctor_id = mother.get("assigned_doctor_id")
+    if assigned_doctor_id:
+        try:
+            assigned_doctor_id = ObjectId(assigned_doctor_id)
+        except Exception:
+            assigned_doctor_id = None
+    
     query_doc = {
         "motherId": ObjectId(mother_id),
         "motherName": mother.get("name", "Unknown"),
@@ -79,7 +87,7 @@ def create_query():
         "category": category,
         "status": "pending",  # pending, in-progress, resolved, closed
         "priority": "normal",  # low, normal, high, urgent
-        "doctorId": None,  # Assigned doctor (if any)
+        "doctorId": assigned_doctor_id,  # Assigned doctor from mother's profile
         "replies": [],
         "createdAt": datetime.utcnow(),
         "updatedAt": datetime.utcnow()
