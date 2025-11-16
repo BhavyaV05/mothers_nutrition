@@ -1,52 +1,56 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="card">
-  <h3>Create Daily Nutrient Plan</h3>
-  <form id="planForm">
-    <label>Mother ID</label>
-    <input name="motherId" value="m_1" required />
 
-    <label>Title</label>
-    <input name="title" value="Daily Requirement Plan" />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { color: #333; }
+        .patient-list { list-style: none; padding: 0; }
+        .patient-list li {
+            background: #f4f4f4;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .patient-list a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
 
-    <label>Required Nutrients (meal-wise JSON)</label>
-    <textarea name="required_nutrients" rows="8">
-{
-  "breakfast": {"kcal": 400, "protein_g": 15, "carb_g": 50, "fat_g": 10},
-  "lunch": {"kcal": 700, "protein_g": 25, "carb_g": 90, "fat_g": 20},
-  "dinner": {"kcal": 700, "protein_g": 25, "carb_g": 90, "fat_g": 20},
-  "snack": {"kcal": 300, "protein_g": 10, "carb_g": 40, "fat_g": 8}
-}
-    </textarea>
+    <h1>Doctor Dashboard</h1>
+    <p>Welcome, Doctor. (Your ID: {{ doctor_id }}) <a href="{{ url_for('logout') }}">Logout</a></p>
 
-    <button type="submit" style="margin-top:12px;">Save Plan</button>
-  </form>
-  <div id="planResult"><em>No plan created yet.</em></div>
-</div>
+    <hr>
 
-<script>
-document.getElementById("planForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const f = e.target;
-  const motherId = f.elements["motherId"].value.trim();
-  const title = f.elements["title"].value;
-  let required_nutrients;
-  try {
-    required_nutrients = JSON.parse(f.elements["required_nutrients"].value);
-  } catch (err) {
-    document.getElementById("planResult").innerHTML = "<pre>Invalid JSON for required_nutrients</pre>";
-    return;
-  }
+    <h2>Your Assigned Patients</h2>
+    
+    {% if mothers %}
+        <ul class="patient-list">
+            {% for mother in mothers %}
+                <li>
+                    <span>
+                        <strong>{{ mother.name }}</strong><br>
+                        <small>{{ mother.email }}</small>
+                    </span>
+                    <a href="{{ url_for('doctor_patient_profile', mother_id=mother._id) }}">
+                        View/Edit Plan
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You have no patients assigned to you yet.</p>
+    {% endif %}
 
-  const payload = { motherId, title, required_nutrients };
-  const res = await fetch("/api/nutrition-plans", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
-  document.getElementById("planResult").innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
-});
-</script>
-
-{% endblock %}
+</body>
+</html>

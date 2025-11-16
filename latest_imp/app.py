@@ -1,13 +1,12 @@
 import os
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+
+
+
+from flask import Flask, request, jsonify, render_template, redirect, url_for,session,flash
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH, SECRET_KEY
-from models import (
-    create_meal_doc, update_meal_labels_and_nutrients, get_meal,
-    create_nutrition_plan, plans_col, get_total_intake_for_day,
-    get_active_plan_for_mother_and_date, users_col, create_alert,
-    get_active_alerts, meals_col
-)
+from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,upsert_nutrition_plan,get_user_by_id
+
 from utils.ocr_dummy import analyze_image_dummy
 from bson.objectid import ObjectId
 from datetime import datetime
@@ -18,6 +17,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # IMPORTANT for ASHA worker feature
 from models import db
 
+from presets import RDA_PRESETS
+
+# from routes.auth import auth_bp
 INDIAN_STATES = [
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
     "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
@@ -129,13 +131,17 @@ def signup():
             "createdAt": datetime.utcnow()
         }
 
-        # -----------------------
-        # MOTHER SIGNUP
-        # -----------------------
-        if role == "mother":
+
+        if role == 'mother':
+            # Mother-specific fields
+            assigned_doctor_id = get_random_doctor_id()
             assigned_asha = assign_random_asha()
+            if not assigned_doctor_id:
+                error = "Cannot register mother: No doctors available for assignment."
+                return render_template("signup.html", error=error, states=INDIAN_STATES, incomes=INCOME_RANGES, diets=DIETARY_PREFERENCES)
 
             user_doc.update({
+                "assigned_doctor_id": assigned_doctor_id,
                 "name": request.form.get("name"),
                 "age": request.form.get("age"),
                 "gender": request.form.get("gender"),
@@ -203,9 +209,15 @@ def logout():
 # -------------------------------------------------
 @app.route("/mother")
 def mother_page():
-    if session.get("role") != "mother":
-        return redirect(url_for("login"))
-    return render_template("mother.html", mother_id=session["user_id"])
+    if session.get('role') != 'mother':
+        return redirect(url_for('login'))
+    mother_id = session['user_id']
+    mother_data = users_col.find_one({"_id": ObjectId(mother_id)})
+    assigned_doctor_id = mother_data.get("assigned_doctor_id") if mother_data else None
+    return render_template("mother.html", 
+                           mother_id=mother_id, 
+                           assigned_doctor_id=assigned_doctor_id)
+
 
 
 # -------------------------------------------------
@@ -213,24 +225,159 @@ def mother_page():
 # -------------------------------------------------
 @app.route("/doctor")
 def doctor_page():
-    if session.get("role") != "doctor":
-        return redirect(url_for("login"))
-    return render_template("doctor.html", doctor_id=session["user_id"])
-
-
-# -------------------------------------------------
-# ASHA PAGE
-# -------------------------------------------------
+    if session.get('role') != 'doctor':
+        return redirect(url_for('login'))
+    
+    # This page will now list the doctor's assigned mothers
+    doctor_id = session['user_id']
+    mothers = get_assigned_mothers(doctor_id)
+    
+    return render_template("doctor.html", 
+                           doctor_id=doctor_id, 
+                           mothers=mothers) # Pass mothers to the template
+# In app.py
 @app.route("/asha")
 def asha_page():
     if session.get("role") != "asha":
         return redirect(url_for("login"))
     return render_template("asha.html", asha_id=session["user_id"])
 
+@app.route("/doctor/patient/<string:mother_id>", methods=["GET", "POST"])
+def doctor_patient_profile(mother_id):
+    # Security check: Ensure doctor is logged in and assigned this mother
+    if session.get('role') != 'doctor':
+        return redirect(url_for('login'))
+        
+    mother = get_user_by_id(mother_id)
+    if not mother or mother.get("assigned_doctor_id") != session.get("user_id"):
+        flash("Unauthorized: You are not assigned to this patient.", "error")
+        return redirect(url_for('doctor_page'))
 
-# -------------------------------------------------
-# API ROUTES (UNCHANGED — YOUR ORIGINAL CODE)
-# -------------------------------------------------
+    if request.method == "POST":
+        # === Form is being submitted, save the data ===
+        
+        # 1. Build the required_nutrients dictionary from the form
+        #    This is now updated with all the new fields
+        required_nutrients = {
+            "breakfast": {
+                "kcal": request.form.get('breakfast-kcal', 0, type=float),
+                "carb_g": request.form.get('breakfast-carb_g', 0, type=float),
+                "protein_g": request.form.get('breakfast-protein_g', 0, type=float),
+                "fat_g": request.form.get('breakfast-fat_g', 0, type=float),
+                "free_sugar_g": request.form.get('breakfast-free_sugar_g', 0, type=float),
+                "fibre_g": request.form.get('breakfast-fibre_g', 0, type=float),
+                "sodium_mg": request.form.get('breakfast-sodium_mg', 0, type=float),
+                "calcium_mg": request.form.get('breakfast-calcium_mg', 0, type=float),
+                "iron_mg": request.form.get('breakfast-iron_mg', 0, type=float),
+                "vitamin_c_mg": request.form.get('breakfast-vitamin_c_mg', 0, type=float),
+                "folate_ug": request.form.get('breakfast-folate_ug', 0, type=float)
+            },
+            "lunch": {
+                "kcal": request.form.get('lunch-kcal', 0, type=float),
+                "carb_g": request.form.get('lunch-carb_g', 0, type=float),
+                "protein_g": request.form.get('lunch-protein_g', 0, type=float),
+                "fat_g": request.form.get('lunch-fat_g', 0, type=float),
+                "free_sugar_g": request.form.get('lunch-free_sugar_g', 0, type=float),
+                "fibre_g": request.form.get('lunch-fibre_g', 0, type=float),
+                "sodium_mg": request.form.get('lunch-sodium_mg', 0, type=float),
+                "calcium_mg": request.form.get('lunch-calcium_mg', 0, type=float),
+                "iron_mg": request.form.get('lunch-iron_mg', 0, type=float),
+                "vitamin_c_mg": request.form.get('lunch-vitamin_c_mg', 0, type=float),
+                "folate_ug": request.form.get('lunch-folate_ug', 0, type=float)
+            },
+            "dinner": {
+                "kcal": request.form.get('dinner-kcal', 0, type=float),
+                "carb_g": request.form.get('dinner-carb_g', 0, type=float),
+                "protein_g": request.form.get('dinner-protein_g', 0, type=float),
+                "fat_g": request.form.get('dinner-fat_g', 0, type=float),
+                "free_sugar_g": request.form.get('dinner-free_sugar_g', 0, type=float),
+                "fibre_g": request.form.get('dinner-fibre_g', 0, type=float),
+                "sodium_mg": request.form.get('dinner-sodium_mg', 0, type=float),
+                "calcium_mg": request.form.get('dinner-calcium_mg', 0, type=float),
+                "iron_mg": request.form.get('dinner-iron_mg', 0, type=float),
+                "vitamin_c_mg": request.form.get('dinner-vitamin_c_mg', 0, type=float),
+                "folate_ug": request.form.get('dinner-folate_ug', 0, type=float)
+            }
+            # Add "snacks" here if you track them
+        }
+        
+        plan_title = request.form.get('plan_title', 'Custom Plan')
+
+        # 2. Use the upsert function (no change needed here)
+        upsert_nutrition_plan(mother_id, plan_title, required_nutrients)
+
+        flash(f"Nutrition plan for {mother.get('name')} updated successfully!", "success")
+        return redirect(url_for('doctor_patient_profile', mother_id=mother_id))
+
+    # === GET Request: Show the form (no change needed here) ===
+    today = datetime.now().strftime("%Y-%m-%d")
+    active_plan = get_active_plan_for_mother_and_date(mother_id, today)
+    
+    return render_template("doctor_profile.html", 
+                           mother=mother, 
+                           plan=active_plan, # This is her saved plan (or None)
+                           presets=json.dumps(RDA_PRESETS) # Pass presets as JSON
+                          )
+@app.route("/api/mothers/assigned/<doctor_id>", methods=["GET"])
+def get_assigned_mothers_api(doctor_id):
+    # Security check: Ensure the requesting user is the doctor whose ID is being queried (or an admin)
+    if session.get('role') != 'doctor' or session.get('user_id') != doctor_id:
+        return jsonify({"error": "Unauthorized access"}), 403
+
+    mothers = get_assigned_mothers(doctor_id)
+    return jsonify(mothers)
+@app.route("/api/doctor/<doctor_id>", methods=["GET"])
+def get_doctor_details(doctor_id):
+    try:
+        doctor = users_col.find_one({"_id": ObjectId(doctor_id), "role": "doctor"}, 
+                                    {"name": 1, "email": 1, "location": 1}) # Only project safe fields
+        
+        if doctor:
+            doctor['_id'] = str(doctor['_id'])
+            return jsonify(doctor)
+        
+        return jsonify({"error": "Doctor not found"}), 404
+    except Exception:
+        return jsonify({"error": "Invalid Doctor ID"}), 400
+    
+
+
+@app.route("/query", methods=["GET", "POST"])
+def query_page():
+    # Only logged-in mothers may post queries here
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if session.get('role') != 'mother':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        mother_id = session.get('user_id') or request.form.get('motherId')
+
+        if not subject or not message or not mother_id:
+            error = "Subject and message are required."
+            return render_template('query.html', error=error, mother_id=mother_id)
+
+        # Save query in `queries` collection
+        from models import db
+        query_doc = {
+            "motherId": mother_id,
+            "subject": subject,
+            "message": message,
+            "status": "open",
+            "createdAt": datetime.utcnow()
+        }
+        try:
+            db.get_collection('queries').insert_one(query_doc)
+        except Exception as e:
+            error = f"Could not save query: {e}"
+            return render_template('query.html', error=error, mother_id=mother_id)
+
+        return render_template('query.html', success=True, mother_id=mother_id)
+
+    return render_template('query.html', mother_id=session.get('user_id'))
+
 
 @app.route("/api/meals/upload", methods=["POST"])
 def upload_meal():
@@ -357,6 +504,27 @@ def get_alerts_for_mother(mother_id):
     alerts = get_active_alerts(mother_id)
     return jsonify(alerts)
 
+
+# API: Get all queries (for doctor)
+@app.route("/api/queries", methods=["GET"])
+def get_all_queries():
+    if session.get('role') != 'doctor':
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    from models import db
+    queries = list(db.get_collection('queries').find().sort("createdAt", -1))
+    for q in queries:
+        q["_id"] = str(q["_id"])
+    return jsonify(queries)
+
+# API: Get queries for a specific mother
+@app.route("/api/queries/mother/<mother_id>", methods=["GET"])
+def get_mother_queries(mother_id):
+    from models import db
+    queries = list(db.get_collection('queries').find({"motherId": mother_id}).sort("createdAt", -1))
+    for q in queries:
+        q["_id"] = str(q["_id"])
+    return jsonify(queries)
 
 @app.route("/api/nutrients/remaining/<mother_id>", methods=["GET"])
 def get_remaining_nutrients(mother_id):

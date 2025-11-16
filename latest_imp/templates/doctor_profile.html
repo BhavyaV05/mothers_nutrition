@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Profile - {{ mother.name }}</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        a { color: #007bff; }
+        .container { max-width: 900px; margin: auto; }
+        /* MODIFIED: More columns for more nutrients */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: bold; font-size: 0.9em; margin-bottom: 3px; }
+        .form-group input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        .meal-section { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        h1, h2, h3 { color: #333; }
+        button { background: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        .preset-bar { margin-bottom: 20px; }
+        
+        /* Flash messages */
+        .flash { padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .flash.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('doctor_page') }}">&larr; Back to Dashboard</a>
+        
+        <h1>Nutrition Plan for {{ mother.name }}</h1>
+        <p>Email: {{ mother.email }} | Age: {{ mother.age }}</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="preset-bar">
+            <strong>Load Preset:</strong>
+            <select id="preset-selector">
+                <option value="">-- Select a template --</option>
+                <option value="trimester_1">Pregnancy (1st Trimester)</option>
+                <option value="trimester_2">Pregnancy (2nd Trimester)</option>
+                <option value="trimester_3">Pregnancy (3rd Trimester)</option>
+                <option value="lactating">Lactating</option>
+            </select>
+            <small>(This will fill the form below. Click Save to apply.)</small>
+        </div>
+        
+        <hr>
+
+        <form method="POST">
+            
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="plan_title">Plan Title</label>
+                <input type="text" id="plan_title" name="plan_title" value="{{ plan.get('title') if plan else '' }}">
+            </div>
+
+            <div class="meal-section">
+                <h3>Breakfast</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="breakfast-kcal">Calories (kcal)</label>
+                        <input type="number" step="0.1" id="breakfast-kcal" name="breakfast-kcal" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('kcal') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-carb_g">Carbs (g)</label>
+                        <input type="number" step="0.1" id="breakfast-carb_g" name="breakfast-carb_g" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('carb_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-protein_g">Protein (g)</label>
+                        <input type="number" step="0.1" id="breakfast-protein_g" name="breakfast-protein_g" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('protein_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-fat_g">Fat (g)</label>
+                        <input type="number" step="0.1" id="breakfast-fat_g" name="breakfast-fat_g" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('fat_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-free_sugar_g">Sugar (g)</label>
+                        <input type="number" step="0.1" id="breakfast-free_sugar_g" name="breakfast-free_sugar_g" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('free_sugar_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-fibre_g">Fibre (g)</label>
+                        <input type="number" step="0.1" id="breakfast-fibre_g" name="breakfast-fibre_g" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('fibre_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-sodium_mg">Sodium (mg)</label>
+                        <input type="number" step="0.1" id="breakfast-sodium_mg" name="breakfast-sodium_mg" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('sodium_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-calcium_mg">Calcium (mg)</label>
+                        <input type="number" step="0.1" id="breakfast-calcium_mg" name="breakfast-calcium_mg" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('calcium_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-iron_mg">Iron (mg)</label>
+                        <input type="number" step="0.1" id="breakfast-iron_mg" name="breakfast-iron_mg" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('iron_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-vitamin_c_mg">Vit. C (mg)</label>
+                        <input type="number" step="0.1" id="breakfast-vitamin_c_mg" name="breakfast-vitamin_c_mg" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('vitamin_c_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="breakfast-folate_ug">Folate (ug)</label>
+                        <input type="number" step="0.1" id="breakfast-folate_ug" name="breakfast-folate_ug" value="{{ plan.get('required_nutrients', {}).get('breakfast', {}).get('folate_ug') if plan else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="meal-section">
+                <h3>Lunch</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="lunch-kcal">Calories (kcal)</label>
+                        <input type="number" step="0.1" id="lunch-kcal" name="lunch-kcal" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('kcal') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-carb_g">Carbs (g)</label>
+                        <input type="number" step="0.1" id="lunch-carb_g" name="lunch-carb_g" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('carb_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-protein_g">Protein (g)</label>
+                        <input type="number" step="0.1" id="lunch-protein_g" name="lunch-protein_g" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('protein_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-fat_g">Fat (g)</label>
+                        <input type="number" step="0.1" id="lunch-fat_g" name="lunch-fat_g" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('fat_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-free_sugar_g">Sugar (g)</label>
+                        <input type="number" step="0.1" id="lunch-free_sugar_g" name="lunch-free_sugar_g" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('free_sugar_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-fibre_g">Fibre (g)</label>
+                        <input type="number" step="0.1" id="lunch-fibre_g" name="lunch-fibre_g" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('fibre_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-sodium_mg">Sodium (mg)</label>
+                        <input type="number" step="0.1" id="lunch-sodium_mg" name="lunch-sodium_mg" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('sodium_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-calcium_mg">Calcium (mg)</label>
+                        <input type="number" step="0.1" id="lunch-calcium_mg" name="lunch-calcium_mg" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('calcium_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-iron_mg">Iron (mg)</label>
+                        <input type="number" step="0.1" id="lunch-iron_mg" name="lunch-iron_mg" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('iron_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-vitamin_c_mg">Vit. C (mg)</label>
+                        <input type="number" step="0.1" id="lunch-vitamin_c_mg" name="lunch-vitamin_c_mg" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('vitamin_c_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunch-folate_ug">Folate (ug)</label>
+                        <input type="number" step="0.1" id="lunch-folate_ug" name="lunch-folate_ug" value="{{ plan.get('required_nutrients', {}).get('lunch', {}).get('folate_ug') if plan else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="meal-section">
+                <h3>Dinner</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="dinner-kcal">Calories (kcal)</label>
+                        <input type="number" step="0.1" id="dinner-kcal" name="dinner-kcal" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('kcal') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-carb_g">Carbs (g)</label>
+                        <input type="number" step="0.1" id="dinner-carb_g" name="dinner-carb_g" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('carb_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-protein_g">Protein (g)</label>
+                        <input type="number" step="0.1" id="dinner-protein_g" name="dinner-protein_g" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('protein_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-fat_g">Fat (g)</label>
+                        <input type="number" step="0.1" id="dinner-fat_g" name="dinner-fat_g" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('fat_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-free_sugar_g">Sugar (g)</label>
+                        <input type="number" step="0.1" id="dinner-free_sugar_g" name="dinner-free_sugar_g" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('free_sugar_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-fibre_g">Fibre (g)</label>
+                        <input type="number" step="0.1" id="dinner-fibre_g" name="dinner-fibre_g" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('fibre_g') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-sodium_mg">Sodium (mg)</label>
+                        <input type="number" step="0.1" id="dinner-sodium_mg" name="dinner-sodium_mg" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('sodium_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-calcium_mg">Calcium (mg)</label>
+                        <input type="number" step="0.1" id="dinner-calcium_mg" name="dinner-calcium_mg" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('calcium_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-iron_mg">Iron (mg)</label>
+                        <input type="number" step="0.1" id="dinner-iron_mg" name="dinner-iron_mg" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('iron_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-vitamin_c_mg">Vit. C (mg)</label>
+                        <input type="number" step="0.1" id="dinner-vitamin_c_mg" name="dinner-vitamin_c_mg" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('vitamin_c_mg') if plan else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dinner-folate_ug">Folate (ug)</label>
+                        <input type="number" step="0.1" id="dinner-folate_ug" name="dinner-folate_ug" value="{{ plan.get('required_nutrients', {}).get('dinner', {}).get('folate_ug') if plan else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit">Save Plan</button>
+        </form>
+    </div>
+
+    <script>
+        const PRESETS = {{ presets|safe }};
+    </script>
+    <script src="{{ url_for('static', filename='js/doctor_form.js') }}"></script>
+</body>
+</html>

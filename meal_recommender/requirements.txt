@@ -1,0 +1,15 @@
+# Core ML + Data Processing
+numpy
+pandas
+scikit-learn
+
+# Database
+pymongo
+
+# Google API
+google-api-python-client
+google-auth
+
+# Utilities
+python-dotenv
+certifi

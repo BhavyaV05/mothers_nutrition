@@ -141,6 +141,98 @@
         word-wrap: break-word;
         font-size: 0.9em;
     }
+
+    /* Floating query button */
+    .floating-btn {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+        border: none;
+        font-size: 24px;
+        z-index: 9999;
+        cursor: pointer;
+    }
+
+    .floating-btn:hover {
+        transform: translateY(-3px);
+    }
+
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 700px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .close-modal {
+        color: #aaa;
+        float: right;
+        font-size: 32px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 20px;
+    }
+
+    .close-modal:hover {
+        color: #000;
+    }
+
+    .query-history-item {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 6px;
+    }
+
+    .query-answer {
+        background: #e6f7ff;
+        border-left: 4px solid #28a745;
+        padding: 10px;
+        margin-top: 8px;
+        border-radius: 4px;
+    }
+
+    #queryModal textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        resize: vertical;
+        font-family: inherit;
+    }
+
+    #queryModal button {
+        margin-top: 10px;
+    }
 </style>
 
 <div id="alertBox"
@@ -149,11 +241,17 @@
     <div id="alertText"></div>
 </div>
 
----
+
 <div class="card">
     <h3>Remaining Nutrients for Today</h3>
     <div id="remainingNutrients"><em>Loading...</em></div>
 </div>
+<div class="card" style="background-color: #e9f5ff;">
+    <h3>Assigned Doctor</h3>
+    <div id="doctorDetails"><em>Checking assignment...</em></div>
+</div>
+
+<input type="hidden" id="assignedDoctorId" value="{{ assigned_doctor_id }}" />
 
 
 <div class="card">
@@ -204,6 +302,43 @@ function getMotherId() {
     // This will securely get the ID from the hidden input field
     return document.getElementById("motherId").value.trim();
 }
+// Function to display doctor details
+async function loadDoctorDetails() {
+    const doctorId = document.getElementById("assignedDoctorId").value.trim();
+    const detailsDiv = document.getElementById("doctorDetails");
+    
+    if (!doctorId || doctorId === 'None') {
+        detailsDiv.innerHTML = "<em>You have not been assigned a doctor yet.</em>";
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/doctor/${doctorId}`);
+        const doctor = await res.json();
+
+        if (res.ok) {
+            detailsDiv.innerHTML = `
+                <p>
+                    <strong>Dr. ${doctor.name || 'Name not available'}</strong><br>
+                    Email: ${doctor.email || 'N/A'}<br>
+                    <small style="color: #6c757d;">(ID: ${doctorId})</small>
+                </p>
+            `;
+        } else {
+            detailsDiv.innerHTML = `<em>Error: Could not find doctor details.</em>`;
+        }
+    } catch (err) {
+        detailsDiv.innerHTML = `<em>Failed to load doctor information.</em>`;
+    }
+}
+
+// Add the call to the window load listener:
+window.addEventListener("load", () => {
+    loadMealHistory();
+    loadAlerts();
+    loadRemainingNutrients();
+    loadDoctorDetails(); // <-- NEW CALL
+});
 async function loadRemainingNutrients() {
     const motherId = getMotherId(); // Use the secure function
     if (!motherId) return;
@@ -394,6 +529,135 @@ window.addEventListener("load", () => {
     loadAlerts();
     loadRemainingNutrients();
 });
+</script>
+
+<!-- Floating Query Button: opens modal -->
+<button class="floating-btn" id="openQueryBtn" title="Ask a Question">?</button>
+
+<!-- Query Modal -->
+<div id="queryModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" id="closeModal">&times;</span>
+        <h2 style="margin-top: 0; color: #007bff;">📩 Ask a Question</h2>
+        
+        <form id="queryForm">
+            <label for="querySubject" style="font-weight: 600; margin-bottom: 4px;">Subject</label>
+            <input type="text" id="querySubject" name="subject" required style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; margin-bottom: 12px;" />
+            
+            <label for="queryMessage" style="font-weight: 600; margin-bottom: 4px;">Your Question</label>
+            <textarea id="queryMessage" name="message" required></textarea>
+            
+            <button type="submit" style="background: #007bff; color: #fff; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold;">Send Query</button>
+        </form>
+
+        <div id="querySuccess" style="display: none; background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; margin-top: 16px;">
+            ✅ Your query has been sent successfully!
+        </div>
+
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e9ecef;" />
+
+        <h3 style="color: #007bff;">📋 Your Past Queries</h3>
+        <div id="queryHistoryArea"><em style="color: #6c757d;">Loading...</em></div>
+    </div>
+</div>
+
+<script>
+// Query Modal functionality
+const modal = document.getElementById("queryModal");
+const openBtn = document.getElementById("openQueryBtn");
+const closeBtn = document.getElementById("closeModal");
+
+openBtn.onclick = function() {
+    modal.style.display = "block";
+    loadQueryHistory();
+}
+
+closeBtn.onclick = function() {
+    modal.style.display = "none";
+    document.getElementById("querySuccess").style.display = "none";
+    document.getElementById("queryForm").reset();
+}
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+        document.getElementById("querySuccess").style.display = "none";
+        document.getElementById("queryForm").reset();
+    }
+}
+
+// Submit query
+document.getElementById("queryForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const motherId = getMotherId();
+    const subject = document.getElementById("querySubject").value;
+    const message = document.getElementById("queryMessage").value;
+
+    const formData = new FormData();
+    formData.append("motherId", motherId);
+    formData.append("subject", subject);
+    formData.append("message", message);
+
+    try {
+        const res = await fetch("/query", {
+            method: "POST",
+            body: formData
+        });
+
+        if (res.ok) {
+            document.getElementById("querySuccess").style.display = "block";
+            document.getElementById("queryForm").reset();
+            loadQueryHistory();
+            setTimeout(() => {
+                document.getElementById("querySuccess").style.display = "none";
+            }, 3000);
+        }
+    } catch (err) {
+        alert("Failed to send query. Please try again.");
+    }
+});
+
+// Load query history for this mother
+async function loadQueryHistory() {
+    const motherId = getMotherId();
+    if (!motherId) return;
+
+    try {
+        const res = await fetch(`/api/queries/mother/${motherId}`);
+        const queries = await res.json();
+
+        if (!Array.isArray(queries) || queries.length === 0) {
+            document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #6c757d;'>No queries yet.</em>";
+            return;
+        }
+
+        let html = "";
+        queries.forEach(q => {
+            const date = new Date(q.createdAt).toLocaleString();
+            html += `
+                <div class="query-history-item">
+                    <strong style="color: #007bff;">${q.subject}</strong>
+                    <p style="margin: 8px 0; color: #333;">${q.message}</p>
+                    <small style="color: #6c757d;">${date} • Status: <strong>${q.status}</strong></small>
+            `;
+            
+            if (q.response) {
+                html += `
+                    <div class="query-answer">
+                        <strong style="color: #28a745;">✓ Doctor's Response:</strong>
+                        <p style="margin: 6px 0 0 0; color: #333;">${q.response}</p>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+        });
+
+        document.getElementById("queryHistoryArea").innerHTML = html;
+    } catch (err) {
+        document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #dc3545;'>Failed to load query history.</em>";
+    }
+}
 </script>
 
 {% endblock %}
