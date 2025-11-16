@@ -262,6 +262,43 @@ def get_doctor_details(doctor_id):
         return jsonify({"error": "Invalid Doctor ID"}), 400
     
 
+
+@app.route("/query", methods=["GET", "POST"])
+def query_page():
+    # Only logged-in mothers may post queries here
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if session.get('role') != 'mother':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        mother_id = session.get('user_id') or request.form.get('motherId')
+
+        if not subject or not message or not mother_id:
+            error = "Subject and message are required."
+            return render_template('query.html', error=error, mother_id=mother_id)
+
+        # Save query in `queries` collection
+        from models import db
+        query_doc = {
+            "motherId": mother_id,
+            "subject": subject,
+            "message": message,
+            "status": "open",
+            "createdAt": datetime.utcnow()
+        }
+        try:
+            db.get_collection('queries').insert_one(query_doc)
+        except Exception as e:
+            error = f"Could not save query: {e}"
+            return render_template('query.html', error=error, mother_id=mother_id)
+
+        return render_template('query.html', success=True, mother_id=mother_id)
+
+    return render_template('query.html', mother_id=session.get('user_id'))
+
 # API: upload meal (mother)
 @app.route("/api/meals/upload", methods=["POST"])
 def upload_meal():
@@ -396,6 +433,28 @@ def get_alerts_for_mother(mother_id):
     from models import get_active_alerts
     alerts = get_active_alerts(mother_id)
     return jsonify(alerts)
+
+# API: Get all queries (for doctor)
+@app.route("/api/queries", methods=["GET"])
+def get_all_queries():
+    if session.get('role') != 'doctor':
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    from models import db
+    queries = list(db.get_collection('queries').find().sort("createdAt", -1))
+    for q in queries:
+        q["_id"] = str(q["_id"])
+    return jsonify(queries)
+
+# API: Get queries for a specific mother
+@app.route("/api/queries/mother/<mother_id>", methods=["GET"])
+def get_mother_queries(mother_id):
+    from models import db
+    queries = list(db.get_collection('queries').find({"motherId": mother_id}).sort("createdAt", -1))
+    for q in queries:
+        q["_id"] = str(q["_id"])
+    return jsonify(queries)
+
 # API: Remaining nutrients for the day
 @app.route("/api/nutrients/remaining/<mother_id>", methods=["GET"])
 def get_remaining_nutrients(mother_id):
