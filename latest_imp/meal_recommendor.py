@@ -106,7 +106,7 @@ def recommend_from_deficits(deficits: dict, profile: dict, top_n=1):
     print(f"[Recommender] Received deficits: {deficits}")
     print(profile)
     # 1. Translate deficit dict to text query
-    #    e.g., {"protein_g": 10} -> "Low in protein"
+    #    e.g., {"protein_g": 10} -> "Low in protein"
     deficiency_text = deficits_to_text_query(deficits)
     
     if not deficiency_text:
@@ -116,7 +116,7 @@ def recommend_from_deficits(deficits: dict, profile: dict, top_n=1):
     print(f"[Recommender] Translated to query: '{deficiency_text}'")
     
     # 2. Call the existing recommendation function
-    #    This re-uses all your complex logic, file loading, and filtering.
+    #    This re-uses all your complex logic, file loading, and filtering.
     try:
         recommendations = generate_recommendations(
             deficiency_text=deficiency_text,
@@ -166,6 +166,10 @@ def get_recipe_link_google_search(dish_name):
 def generate_recommendations(deficiency_text, profile, top_n=5):
     """
     Generates meal recommendations, fetches recipe links, and saves to MongoDB.
+    
+    Implements a two-pass filter: 
+    1. Strict (all profile criteria)
+    2. Relaxed (enforce only diet and allergies) if strict fails.
     """
     try:
         df_nutri = pd.read_csv(NUTRITION_DATA_FILE, encoding='utf-8-sig')
@@ -246,26 +250,59 @@ def generate_recommendations(deficiency_text, profile, top_n=5):
     food_vecs = df_norm[NUTRIENT_COLS].values
     nutrient_scores = cosine_similarity(def_vec, food_vecs)[0]
     df_norm["nutrient_score"] = nutrient_scores
-
-    def matches(profile, row):
-        state_ok = "All Indian States" in str(row["states"]) or profile["state"] in str(row["states"])
-        area_ok = row["area"].lower() in ["both", profile["area"].lower()]
-        diet_ok = profile["diet_pref"].lower() in str(row["diet_type"]).lower()
-        income_ok = any(rng in str(row["income_range"]) for rng in profile["income_range"].split(","))
-        cuisine_ok = profile.get("cuisine_pref", "").lower() in str(row["cuisine"]).lower()
-        
+    
+    # --- Two-Pass Filtering Logic Starts Here ---
+    
+    def get_allergy_ok(profile, row):
+        """Helper to check strict allergy constraint."""
         allergies_ok = True
         if profile.get("allergies_to_avoid"):
             allergies_ok = all(
                 allergy.lower() not in str(row["allergens"]).lower() 
                 for allergy in profile["allergies_to_avoid"]
             )
+        return allergies_ok
+        
+    def matches_strict(profile, row):
+        """Pass 1: Checks ALL profile criteria."""
+        state_ok = "All Indian States" in str(row["states"]) or profile["state"] in str(row["states"])
+        area_ok = row["area"].lower() in ["both", profile["area"].lower()]
+        diet_ok = profile["diet_pref"].lower() in str(row["diet_type"]).lower()
+        income_ok = any(rng in str(row["income_range"]) for rng in profile["income_range"].split(","))
+        cuisine_ok = profile.get("cuisine_pref", "").lower() in str(row["cuisine"]).lower()
+        allergies_ok = get_allergy_ok(profile, row)
         return state_ok and area_ok and diet_ok and income_ok and cuisine_ok and allergies_ok
 
-    df_filtered = df_norm[df_norm.apply(lambda r: matches(profile, r), axis=1)]
-    if df_filtered.empty:
-        return {"error": "No matching meals found for this profile. Try adjusting filters."}
+    # --- Pass 1: Strict Filtering ---
+    df_filtered = df_norm[df_norm.apply(lambda r: matches_strict(profile, r), axis=1)]
 
+    if df_filtered.empty:
+        print("[Recommender] Strict filtering failed. Trying relaxed search...")
+        
+        # --- Pass 2: Relaxed Filtering (Only enforce Diet and Allergies) ---
+        def matches_relaxed(profile, row):
+            """Pass 2: Checks only essential criteria (Diet, Area, Allergies)."""
+            
+            # Diet MUST remain strict for user preference
+            diet_ok = profile["diet_pref"].lower() in str(row["diet_type"]).lower()
+            
+            # Area remains important (e.g., rural vs urban ingredient availability)
+            area_ok = row["area"].lower() in ["both", profile["area"].lower()]
+            
+            # Allergies MUST remain strict for safety
+            allergies_ok = get_allergy_ok(profile, row)
+            
+            # State, Income, and Cuisine filters are ignored in this pass.
+            return area_ok and diet_ok and allergies_ok
+
+        df_filtered = df_norm[df_norm.apply(lambda r: matches_relaxed(profile, r), axis=1)]
+
+    # --- Check Pass 2 Results ---
+    if df_filtered.empty:
+        # If even the relaxed search fails, we can't recommend anything safe.
+        return {"error": "No safe meals found, even after relaxing region, income, and cuisine filters. The basic constraints (Diet Type or Allergies) are too restrictive for the nutrient goals."}
+
+    # --- Continue with sorting and output using the best matches found (from Pass 1 or Pass 2) ---
     df_filtered["final_score"] = df_filtered["nutrient_score"] 
     top_meals = df_filtered.sort_values("final_score", ascending=False).head(top_n)
 
@@ -285,9 +322,9 @@ def generate_recommendations(deficiency_text, profile, top_n=5):
     print("Fetching recipe links using Google Custom Search...")
     for meal in result["recommended_meals"]:
         dish_name = meal["Dish Name"]
-        recipe_link = get_recipe_link_google_search(dish_name) # <-- Changed function
+        recipe_link = get_recipe_link_google_search(dish_name)
         meal["recipe_link"] = recipe_link
-        print(f"  - {dish_name}: {recipe_link}")
+        print(f"  - {dish_name}: {recipe_link}")
 
     # --- Save result to MongoDB ---
     if collection is not None:
@@ -314,32 +351,31 @@ def generate_recommendations(deficiency_text, profile, top_n=5):
 # NEW: Example run (for testing)
 # ----------------------------------------------------------------
 # if __name__ == "__main__":
-#     print("\n" + "="*50)
-#     print("--- STARTING TEST RUN ---")
-#     print("NOTE: This will connect to MongoDB and use your Google Search API quota.")
-#     print("="*50 + "\n")
+#     print("\n" + "="*50)
+#     print("--- STARTING TEST RUN ---")
+#     print("NOTE: This will connect to MongoDB and use your Google Search API quota.")
+#     print("="*50 + "\n")
 
-#     # 1. Define the doctor's query
-#     example_def = "Low in iron and protein, avoid sugar."
+#     # 1. Define the doctor's query (The broad query that failed previously)
+#     example_def = "Low in carbohydrate and protein and sugar and fiber and calcium and iron and vitamin c and folate"
 
-#     # 2. Define the user's profile
-#     example_profile = {
-#         "state": "Maharashtra",
-#         "area": "urban",
-#         "income_range": "3-6L",
-#         "diet_pref": "vegetarian",
-#         "cuisine_pref": "North Indian",
-#         "allergies_to_avoid": ["Dairy"] # Test the allergy filter
-#     }
-    
-#     # 3. Call the function
-#     # Using top_n=3 to save your free API quota during testing.
-#     print(f"Generating recommendations for: '{example_def}'")
-#     recs = generate_recommendations(example_def, example_profile, top_n=3) 
+#     # 2. Define the user's profile
+#     example_profile = {
+#         "state": "Maharashtra",
+#         "area": "urban",
+#         "income_range": "3-6L",
+#         "diet_pref": "vegetarian",
+#         "cuisine_pref": "North Indian",
+#         "allergies_to_avoid": ["Dairy"] # Test the allergy filter
+#     }
 
-#     # 4. Print the final result
-#     print("\n" + "="*50)
-#     print("--- TEST RUN COMPLETE ---")
-#     print("Final JSON output (as sent to backend and MongoDB):")
-#     print(json.dumps(recs, indent=2))
-#     print("="*50 + "\n")
+#     # 3. Call the function
+#     print(f"Generating recommendations for: '{example_def}'")
+#     recs = generate_recommendations(example_def, example_profile, top_n=3) 
+
+#     # 4. Print the final result
+#     print("\n" + "="*50)
+#     print("--- TEST RUN COMPLETE ---")
+#     print("Final JSON output (as sent to backend and MongoDB):")
+#     print(json.dumps(recs, indent=2))
+#     print("="*50 + "\n")

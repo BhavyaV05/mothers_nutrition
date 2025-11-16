@@ -143,11 +143,13 @@ def signup():
             # Mother-specific fields
             assigned_doctor_id = get_random_doctor_id()
             assigned_asha = assign_random_asha()
-            
             if not assigned_doctor_id:
                 error = "Cannot register mother: No doctors available for assignment."
                 return render_template("signup.html", error=error, states=INDIAN_STATES, incomes=INCOME_RANGES, diets=DIETARY_PREFERENCES)
 
+            # Ensure doctor & asha ids are stored as strings
+            assigned_doctor_id_str = str(assigned_doctor_id) if assigned_doctor_id is not None else None
+            assigned_asha_str = str(assigned_asha) if assigned_asha is not None else None
 
             user_doc.update({
                 "name": request.form.get("name"),
@@ -157,7 +159,9 @@ def signup():
                 "location_area_type": request.form.get("area_type"),
                 "income_range": request.form.get("income"),
                 "dietary_preference": request.form.get("diet"),
+
                 "ashaId": assigned_asha,
+                "assigned_doctor_id": assigned_doctor_id_str,
                 "cuisine_preference": request.form.get("cuisine_preference", ""),
                 
                 # Split comma-separated string into a list
@@ -166,7 +170,9 @@ def signup():
                     in request.form.get("allergies", "").split(',') 
                     if allergy.strip()
                 ]
+
             })
+
 
         # Doctor signup
         elif role == "doctor":
@@ -225,9 +231,32 @@ def logout():
 # -------------------------------------------------
 @app.route("/mother")
 def mother_page():
+    # ensure only mothers can open this page
     if session.get('role') != 'mother':
         return redirect(url_for('login'))
-    return render_template("mother.html", mother_id=session['user_id'])
+
+    user_id = session.get('user_id')
+    # try to fetch the mother's document and extract assigned doctor id
+    try:
+        mother = get_user_by_id(user_id)  # you already import this helper
+    except Exception:
+        mother = None
+
+    if not mother:
+        # fallback: still render page but without assignment
+        return render_template("mother.html", mother_id=user_id, assigned_doctor_id="")
+
+    # The field name you used is 'assigned_doctor_id' in DB (see earlier fix)
+    assigned_doc = mother.get("assigned_doctor_id") or mother.get("assigned_doctor") or ""
+
+    # ensure it's a string (template expects a string)
+    if assigned_doc is None:
+        assigned_doc = ""
+    else:
+        assigned_doc = str(assigned_doc)
+
+    return render_template("mother.html", mother_id=user_id, assigned_doctor_id=assigned_doc)
+
 
 
 
@@ -473,7 +502,8 @@ def upload_meal():
             
             # Call the recommender with the deficits
             recs = recommend_from_deficits(deficits, profile_for_recommender, top_n=1)
-            
+            print("hahah")
+            print(recs)
             # Get the top meal
             if recs and recs.get("recommended_meals") and recs["recommended_meals"]:
                 meal_recommendation = recs["recommended_meals"][0]
