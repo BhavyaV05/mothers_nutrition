@@ -5,7 +5,7 @@ import os
 from flask import Flask, request, jsonify, render_template, redirect, url_for,session,flash
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH, SECRET_KEY
-from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,get_user_by_id, upsert_nutrition_plan,get_unread_notifications, mark_notification_as_read , create_notification,get_assigned_mothers_by_asha_id
+from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_queries_for_mother,get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts,get_queries_by_mother, meals_col,get_random_doctor_id,get_assigned_mothers,get_user_by_id, upsert_nutrition_plan,get_unread_notifications, mark_notification_as_read , create_notification,get_assigned_mothers_by_asha_id
 
 from utils.ocr_dummy import analyze_image_dummy
 from bson.objectid import ObjectId
@@ -348,10 +348,10 @@ def asha_page():
         return redirect(url_for('login'))
     
     asha_id = session['user_id']
-    
+    print(asha_id)
     # 1. Get the simple list of mothers
     mothers = get_assigned_mothers_by_asha_id(asha_id)
-    
+    print(mothers)
     # 2. Render the dashboard template
     return render_template("asha_worker.html", 
                            asha_id=asha_id,mothers=mothers)
@@ -359,12 +359,12 @@ def asha_page():
 def asha_patient_profile(mother_id):
     if session.get('role') != 'asha':
         return redirect(url_for('login'))
-        
+    print("hehe")    
     asha_id = session['user_id']
     mother = get_user_by_id(mother_id)
     
     # Security check: Make sure this mother is assigned to this asha worker
-    if not mother or mother.get("assigned_asha_worker_id") != asha_id:
+    if not mother or mother.get("ashaId") != asha_id:
         flash("You are not authorized to view this patient.", "error")
         return redirect(url_for('asha_page'))
 
@@ -373,7 +373,9 @@ def asha_patient_profile(mother_id):
     plan = get_active_plan_for_mother_and_date(mother_id, today)
     alerts = get_active_alerts(mother_id) 
     queries = get_queries_for_mother(mother_id) # Assumes you have this function
-    
+    print(plan)
+    print(alerts)
+    print(queries)
     return render_template("asha_patient_profile.html",
                            mother=mother,
                            plan=plan,

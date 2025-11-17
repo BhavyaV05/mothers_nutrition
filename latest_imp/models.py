@@ -35,14 +35,14 @@ def get_assigned_mothers_by_asha_id(asha_worker_id):
     """Fetches a list of mothers assigned to a specific asha worker."""
     try:
         mothers = list(users_col.find(
-            {"role": "mother", "assigned_asha_worker_id": asha_worker_id},
+            {"role": "mother", "ashaId": asha_worker_id},
             {"name": 1, "email": 1} # Project only necessary fields
         ).sort("name", 1))
 
         # Convert ObjectIds to strings
         for mother in mothers:
             mother['_id'] = str(mother['_id'])
-            
+        print(mothers)
         return mothers
     except Exception as e:
         print(f"Error fetching assigned mothers for ASHA: {e}")
@@ -355,7 +355,22 @@ def create_query(mother_id, subject, message, category="general"):
     result = queries_col.insert_one(query_doc)
     query_doc["_id"] = str(result.inserted_id)
     return query_doc
-
+def get_queries_for_mother(mother_id: str):
+    """Fetches all queries (newest first) for a specific mother."""
+    try:
+        # Assumes your queries collection is named 'queries_col'
+        queries = list(queries_col.find(
+            {"motherId": mother_id} 
+        ).sort("createdAt", -1))
+        
+        # Convert ObjectIds
+        for query in queries:
+            query['_id'] = str(query['_id'])
+            
+        return queries
+    except Exception as e:
+        print(f"Error fetching queries: {e}")
+        return []
 def get_queries_by_mother(mother_id, status=None):
     """Get all queries created by a specific mother."""
     filter_query = {"motherId": ObjectId(mother_id)}

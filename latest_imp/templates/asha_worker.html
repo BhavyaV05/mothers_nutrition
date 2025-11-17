@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* All the styles from your previous file */
+ .dashboard-header {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        border: 2px solid #667eea30;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .dashboard-header h2 { color: #667eea; margin: 0; font-size: 1.75rem; }
+    .dashboard-header button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 10px;
+        cursor: pointer; font-weight: 600; transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    .dashboard-header button:hover {
+        transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    .card {
+        background: white; border: 1px solid #e2e8f0; padding: 1.75rem;
+        border-radius: 16px; margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    .card h3 {
+        color: #667eea; margin-top: 0; margin-bottom: 1.25rem;
+        font-size: 1.5rem; border-bottom: 2px solid #f7fafc;
+        padding-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    /* This style is for the new simple list */
+    .mother-list-item {
+        background: white; border: 1px solid #e2e8f0; padding: 1.5rem;
+        border-radius: 12px; margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        display: flex; justify-content: space-between; align-items: center;
+        transition: all 0.3s ease;
+    }
+    .mother-list-item:hover {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15); transform: translateY(-2px);
+    }
+    .mother-list-item strong { color: #2c3e50; font-size: 1.1rem; }
+    .mother-list-item p { color: #4a5568; margin: 0.25rem 0 0 0; }
+    .mother-list-item a {
+        text-decoration: none; color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600;
+        transition: all 0.3s ease; box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        font-size: 0.9rem;
+    }
+    .mother-list-item a:hover {
+        transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    /* Notification Styles */
+    #notificationsList { max-height: 300px; overflow-y: auto; }
+    .notification-item {
+        background: #f8f9fa; border-left: 4px solid #667eea; padding: 12px;
+        margin-bottom: 8px; border-radius: 6px; display: flex;
+        justify-content: space-between; align-items: center;
+    }
+    .notification-item a { text-decoration: none; color: #333; font-weight: 500; }
+    .notification-item a:hover { color: #667eea; }
+    .notification-item small { color: #6c757d; display: block; margin-top: 4px; }
+    .mark-read-btn {
+        background: none; border: none; color: #667eea; cursor: pointer;
+        font-size: 1.4rem; font-weight: bold; padding: 5px; margin-left: 10px; line-height: 1;
+    }
+    .mark-read-btn:hover { color: #c53030; }
+</style>
+
+<div class="dashboard-header">
+    <h2>👩‍⚕️ ASHA Worker Dashboard</h2>
+    <button id="refreshBtn">🔄 Refresh</button>
+</div>
+
+<div class="card" id="notificationsCard">
+    <h3>🔔 Notifications</h3>
+    <div id="notificationsList">
+        <em></em>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="color: #667eea;">Assigned Mothers</h3>
+    
+    <div id="mothersList">
+    {% if mothers %}
+        {% for mother in mothers %}
+        <div class="mother-list-item">
+            <div>
+                <strong>{{ mother.name }}</strong>
+                <p>{{ mother.email }}</p>
+            </div>
+            <a href="{{ url_for('asha_patient_profile', mother_id=mother._id) }}">
+                View Details
+            </a>
+        </div>
+        {% endfor %}
+    {% else %}
+        <em style="color: #718096;">No mothers assigned</em>
+    {% endif %}
+    </div>
+</div>
+
+<script>
+// --- Notification JavaScript ---
+async function loadNotifications() {
+    const listDiv = document.getElementById("notificationsList");
+    listDiv.innerHTML = "<em>Loading notifications...</em>";
+    try {
+        const res = await fetch('/api/notifications'); // Calls the new route in app.py
+        if (!res.ok) {
+            listDiv.innerHTML = "<em style='color: red;'>Failed to load notifications.</em>";
+            return;
+        }
+        const notifications = await res.json();
+        if (!notifications || notifications.length === 0) {
+            listDiv.innerHTML = "<em>No new notifications.</em>";
+            return;
+        }
+        let html = "";
+        notifications.forEach(notif => {
+            html += `
+                <div class="notification-item" id="notif-${notif._id}">
+                    <div>
+                        <a href="${notif.link_url}" target="_blank" class="notification-link" data-id="${notif._id}">
+                            ${notif.message}
+                        </a>
+                        <small>${new Date(notif.createdAt).toLocaleString()}</small>
+                    </div>
+                    <button class="mark-read-btn" data-id="${notif._id}" title="Mark as read">&times;</button>
+                </div>
+            `;
+        });
+        listDiv.innerHTML = html;
+        addNotificationListeners();
+    } catch (err) {
+        console.error("Error loading notifications:", err);
+        listDiv.innerHTML = "<em style='color: red;'>Error loading notifications.</em>";
+    }
+}
+async function markAsRead(notificationId) {
+    try {
+        const res = await fetch(`/api/notifications/mark_read/${notificationId}`, {
+            method: 'POST', credentials: 'include'
+        });
+        if (res.ok) {
+            const notifElement = document.getElementById(`notif-${notificationId}`);
+            if (notifElement) {
+                notifElement.style.opacity = 0;
+                setTimeout(() => {
+                     notifElement.remove();
+                    if (document.getElementById("notificationsList").children.length === 0) {
+                         document.getElementById("notificationsList").innerHTML = "<em>No new notifications.</em>";
+                    }
+                }, 300);
+            }
+        }
+    } catch (err) { console.error("Error marking as read:", err); }
+}
+function addNotificationListeners() {
+    document.querySelectorAll('.mark-read-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = e.target.closest('.mark-read-btn').dataset.id;
+            markAsRead(id);
+        });
+    });
+    document.querySelectorAll('.notification-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const id = e.target.closest('.notification-link').dataset.id;
+            setTimeout(() => markAsRead(id), 100); 
+        });
+    });
+}
+
+// --- Page Load & Refresh ---
+document.getElementById("refreshBtn").addEventListener("click", () => {
+    // Reloads the page, which will re-run loadNotifications()
+    // and also get an updated mother list from the server.
+    window.location.reload();
+});
+
+// Load notifications when the page first opens
+loadNotifications();
+</script>
+
+{% endblock %}

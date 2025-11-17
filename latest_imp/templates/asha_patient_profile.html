@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    body { 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        padding: 20px; 
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        min-height: 100vh;
+    }
+    .container { 
+        max-width: 1000px; 
+        margin: auto; 
+    }
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px; 
+        padding: 2rem;
+        margin-bottom: 2rem; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    .dashboard-header h2 { 
+        color: #ffffff; 
+        margin: 0; 
+        font-size: 2rem; 
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .dashboard-header a {
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        color: #667eea;
+        padding: 0.85rem 1.75rem;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .dashboard-header a:hover {
+        background: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+    .mother-card {
+        background: white; 
+        border: none;
+        padding: 2rem;
+        border-radius: 20px; 
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease;
+    }
+    .mother-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    .mother-card h3 {
+        color: #667eea; 
+        margin-top: 0; 
+        margin-bottom: 1.5rem;
+        font-size: 1.75rem; 
+        border-bottom: 3px solid #667eea20; 
+        padding-bottom: 1rem;
+        font-weight: 700;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .info-item {
+        background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+        padding: 1rem;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+    }
+    .info-item strong { 
+        color: #667eea; 
+        font-weight: 600; 
+        display: block;
+        margin-bottom: 0.25rem;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .info-item p { 
+        color: #2c3e50; 
+        margin: 0; 
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    .deficit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+    .mother-card h4 {
+        color: #764ba2; 
+        margin-top: 2rem; 
+        margin-bottom: 1rem;
+        font-size: 1.3rem; 
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .queries-list { 
+        margin-top: 1rem; 
+        padding: 0; 
+        list-style: none; 
+    }
+    .query-item-asha {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        border-left: 5px solid #667eea; 
+        padding: 1.5rem;
+        margin-bottom: 1rem; 
+        border-radius: 12px; 
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+    }
+    .query-item-asha:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        transform: translateX(4px);
+    }
+    .query-item-asha strong { 
+        color: #667eea; 
+        display: block; 
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    .query-response-asha {
+        background: linear-gradient(135deg, #d1fae5 0%, #c6f6d5 100%);
+        border-left: 4px solid #48bb78; 
+        padding: 1rem;
+        margin-top: 0.75rem; 
+        border-radius: 10px; 
+        font-size: 0.95em;
+    }
+    .query-response-asha strong { 
+        color: #2f855a; 
+        display: inline; 
+        font-weight: 700;
+    }
+    .status-open, .status-answered {
+        padding: 0.35rem 0.8rem; 
+        border-radius: 20px; 
+        font-size: 0.7em;
+        font-weight: 700; 
+        text-transform: uppercase; 
+        display: inline-block; 
+        margin-left: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .status-open { 
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+        color: #92400e; 
+    }
+    .status-answered { 
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); 
+        color: #065f46; 
+    }
+    .nutrition-plan {
+        background: linear-gradient(135deg, #fff5f7 0%, #ffe4e6 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 2px solid #fbb6ce;
+    }
+    .nutrient-item {
+        background: white;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    .nutrient-item {
+    background: white;
+    padding: 0.75rem 1rem;
+    margin: 0;  /* Change from margin: 0.5rem 0; */
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+    .nutrient-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+}
+    .nutrient-value {
+        color: #2c3e50;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .alert-item {
+        border: 2px solid #fc8181; 
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        padding: 1.25rem;
+        margin: 1rem 0; 
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(252, 129, 129, 0.2);
+    }
+    .alert-item strong { 
+        color: #c53030; 
+        font-weight: 700;
+    }
+    .deficit-item {
+    background: white;
+    padding: 0.75rem 1rem;
+    margin: 0;  /* Change from margin: 0.5rem 0; */
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;  /* Add this */
+    gap: 0.25rem;  /* Add this */
+    border-left: 3px solid #fc8181;
+}
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #718096;
+        font-style: italic;
+        background: #f7fafc;
+        border-radius: 10px;
+        border: 2px dashed #cbd5e0;
+    }
+</style>
+
+<div class="container">
+    <div class="dashboard-header">
+        <h2>👩‍⚕️ Patient Details</h2>
+        <a href="{{ url_for('asha_page') }}">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <div class="mother-card">
+        <h3>{{ mother.name }}</h3>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>📧 Email</strong>
+                <p>{{ mother.email or 'N/A' }}</p>
+            </div>
+            <div class="info-item">
+                <strong>🎂 Age</strong>
+                <p>{{ mother.age or 'N/A' }} years</p>
+            </div>
+            <div class="info-item">
+                <strong>📍 Location</strong>
+                <p>{{ mother.location_state or 'N/A' }} ({{ mother.location_area_type or 'N/A' }})</p>
+            </div>
+            <div class="info-item">
+                <strong>💰 Income Range</strong>
+                <p>{{ mother.income_range or 'N/A' }}</p>
+            </div>
+            <div class="info-item">
+                <strong>🍽️ Dietary Preference</strong>
+                <p>{{ mother.dietary_preference or 'N/A' }}</p>
+            </div>
+        </div>
+
+        <h4>💬 Patient Queries</h4>
+        {% if queries %}
+            <div class="queries-list">
+            {% for query in queries %}
+                <div class="query-item-asha">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <strong>{{ query.subject }}</strong>
+                        {% if query.status == 'answered' %}
+                            <span class="status-answered">✓ ANSWERED</span>
+                        {% else %}
+                            <span class="status-open">⏳ OPEN</span>
+                        {% endif %}
+                    </div>
+                    <p style="margin: 0.75rem 0 0.5rem 0; color: #4a5568; line-height: 1.6;">{{ query.message }}</p>
+                    <small style="color: #718096; font-size: 0.8em; font-weight: 500;">
+                        📅 {{ query.createdAt.strftime('%B %d, %Y') if query.createdAt else 'N/A' }}
+                    </small>
+                    
+                    {% if query.response %}
+                    <div class="query-response-asha">
+                        <strong>Doctor Response:</strong> {{ query.response }}
+                    </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                💭 No patient queries available
+            </div>
+        {% endif %}
+        
+<h4>🥗 Doctor's Nutrition Plan</h4>
+{% if plan and plan.required_nutrients %}
+    <div class="nutrition-plan">
+        <div class="nutrient-grid">
+        {% if plan.required_nutrients is mapping %}
+            {% for nutrient, value in plan.required_nutrients.items() %}
+            <div class="nutrient-item">
+                <strong>{{ nutrient|replace('_', ' ')|title }}</strong>
+                <span class="nutrient-value">{{ value }}</span>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">Unable to parse nutrition data</div>
+        {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="empty-state">
+        📋 No active nutrition plan found
+    </div>
+{% endif %}
+
+        <h4>⚠️ Nutritional Alerts</h4>
+        {% if alerts %}
+            {% for a in alerts %}
+            <div class="alert-item">
+                <div style="margin-bottom: 1rem;">
+                    <strong>📅 Date:</strong> {{ a.mealDate }}
+                </div>
+                <div>
+    <strong>⚠️ Nutrient Deficits:</strong>
+    {% if a.nutrient_deficit is mapping %}
+        <div class="deficit-grid">
+        {% for nutrient, deficit in a.nutrient_deficit.items() %}
+        <div class="deficit-item">
+            <span style="font-weight: 600;">{{ nutrient|replace('_', ' ')|title }}</span>
+            <span style="color: #c53030; font-weight: 700;">{{ deficit }}</span>
+        </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">Unable to parse deficit data</div>
+    {% endif %}
+</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                ✅ No active nutritional alerts
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
