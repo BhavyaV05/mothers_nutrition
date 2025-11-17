@@ -285,7 +285,7 @@
                     </div>
                     <p style="margin: 0.75rem 0 0.5rem 0; color: #4a5568; line-height: 1.6;">{{ query.message }}</p>
                     <small style="color: #718096; font-size: 0.8em; font-weight: 500;">
-                        📅 {{ query.createdAt.strftime('%B %d, %Y') if query.createdAt else 'N/A' }}
+                        📅 {{ query.createdAt or 'N/A' }}
                     </small>
                     
                     {% if query.response %}

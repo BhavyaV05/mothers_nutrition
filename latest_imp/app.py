@@ -359,29 +359,41 @@ def asha_page():
 def asha_patient_profile(mother_id):
     if session.get('role') != 'asha':
         return redirect(url_for('login'))
-    print("hehe")    
-    asha_id = session['user_id']
+
+    asha_id = session.get('user_id')
     mother = get_user_by_id(mother_id)
-    
-    # Security check: Make sure this mother is assigned to this asha worker
-    if not mother or mother.get("ashaId") != asha_id:
+
+    # Security check: ensure ASHA is assigned to this mother
+    if not mother or str(mother.get("ashaId")) != str(asha_id):
         flash("You are not authorized to view this patient.", "error")
         return redirect(url_for('asha_page'))
 
-    # Get all the details for this mother
     today = datetime.now().strftime("%Y-%m-%d")
+
     plan = get_active_plan_for_mother_and_date(mother_id, today)
-    alerts = get_active_alerts(mother_id) 
-    queries = get_queries_for_mother(mother_id) # Assumes you have this function
-    print(plan)
-    print(alerts)
-    print(queries)
-    return render_template("asha_patient_profile.html",
-                           mother=mother,
-                           plan=plan,
-                           alerts=alerts,
-                           queries=queries
-                           )
+    alerts = get_active_alerts(mother_id)
+
+    # FIX: Pull all queries for this mother directly from DB
+    queries = list(db.get_collection("queries").find(
+        {"motherId": ObjectId(mother_id)}
+    ).sort("createdAt", -1))
+
+    # Convert ObjectId and datetime → readable strings
+    for q in queries:
+        q["_id"] = str(q["_id"])
+        if "createdAt" in q:
+            q["createdAt"] = q["createdAt"].strftime("%Y-%m-%d")
+        if "respondedAt" in q and q["respondedAt"]:
+            q["respondedAt"] = q["respondedAt"].strftime("%Y-%m-%d")
+
+    return render_template(
+        "asha_patient_profile.html",
+        mother=mother,
+        plan=plan,
+        alerts=alerts,
+        queries=queries
+    )
+
 @app.route("/doctor/patient/<string:mother_id>", methods=["GET", "POST"])
 def doctor_patient_profile(mother_id):
     # Security check: Ensure doctor is logged in and assigned this mother
