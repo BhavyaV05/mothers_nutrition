@@ -5,7 +5,7 @@ import os
 from flask import Flask, request, jsonify, render_template, redirect, url_for,session,flash
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH, SECRET_KEY
-from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,get_user_by_id, upsert_nutrition_plan
+from models import create_meal_doc, update_meal_labels_and_nutrients, get_meal, create_nutrition_plan, plans_col, get_total_intake_for_day, get_active_plan_for_mother_and_date, users_col, create_alert, get_active_alerts, meals_col,get_random_doctor_id,get_assigned_mothers,get_user_by_id, upsert_nutrition_plan,get_unread_notifications, mark_notification_as_read , create_notification,get_assigned_mothers_by_asha_id
 
 from utils.ocr_dummy import analyze_image_dummy
 from bson.objectid import ObjectId
@@ -109,8 +109,69 @@ def login():
         return redirect(url_for("index"))
 
     return render_template("login.html")
+@app.route("/reports/mother/<string:mother_id>")
+def generate_mother_report(mother_id):
+    """
+    Shows the visual report page for a specific mother.
+    """
+    if 'user_id' not in session or session.get('role') not in ['doctor', 'asha']:
+        flash("You are not authorized to view this report.", "error")
+        return redirect(url_for('login'))
+        
+    mother = get_user_by_id(mother_id)
+    if not mother:
+        return "Mother not found", 404
+        
+    meals = list(meals_col.find(
+        {"motherId": mother_id, "status": "processed"}
+    ).sort("mealDate", 1))
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    plan = get_active_plan_for_mother_and_date(mother_id, today)
+    alerts = get_active_alerts(mother_id)
+    
+    return render_template("report.html",
+                           mother=mother,
+                           meals=meals,
+                           plan=plan,
+                           alerts=alerts,
+                           meals_json=json.dumps(meals, default=str),
+                           plan_json=json.dumps(plan, default=str)
+                           )
+@app.route("/api/notifications")
+def get_notifications():
+    """
+    API endpoint to fetch all unread notifications for the
+    currently logged-in user (doctor or asha worker).
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session['user_id']
+    notifications = get_unread_notifications(user_id)
+    
+    # Convert ObjectId to string for JSON
+    for notif in notifications:
+        notif["_id"] = str(notif["_id"])
+            
+    return jsonify(notifications)
 
 
+@app.route("/api/notifications/mark_read/<string:notification_id>", methods=["POST"])
+def mark_notification_read(notification_id):
+    """
+    API endpoint to mark a notification as 'read'.
+    """
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user_id = session['user_id']
+    success = mark_notification_as_read(notification_id, user_id)
+    
+    if success:
+        return jsonify({"success": True})
+    else:
+        return jsonify({"error": "Notification not found or permission denied"}), 404
 # -------------------------------------------------
 # SIGNUP
 # -------------------------------------------------
@@ -281,12 +342,44 @@ def doctor_page():
                            mothers=mothers)
 
 # In app.py
-@app.route("/asha")
+@app.route("/asha") # Or whatever your main ASHA dashboard route is
 def asha_page():
-    if session.get("role") != "asha":
-        return redirect(url_for("login"))
-    return render_template("asha.html", asha_id=session["user_id"])
+    if session.get('role') != 'asha':
+        return redirect(url_for('login'))
+    
+    asha_id = session['user_id']
+    
+    # 1. Get the simple list of mothers
+    mothers = get_assigned_mothers_by_asha_id(asha_id)
+    
+    # 2. Render the dashboard template
+    return render_template("asha_worker.html", 
+                           asha_id=asha_id,mothers=mothers)
+@app.route("/asha/patient/<string:mother_id>")
+def asha_patient_profile(mother_id):
+    if session.get('role') != 'asha':
+        return redirect(url_for('login'))
+        
+    asha_id = session['user_id']
+    mother = get_user_by_id(mother_id)
+    
+    # Security check: Make sure this mother is assigned to this asha worker
+    if not mother or mother.get("assigned_asha_worker_id") != asha_id:
+        flash("You are not authorized to view this patient.", "error")
+        return redirect(url_for('asha_page'))
 
+    # Get all the details for this mother
+    today = datetime.now().strftime("%Y-%m-%d")
+    plan = get_active_plan_for_mother_and_date(mother_id, today)
+    alerts = get_active_alerts(mother_id) 
+    queries = get_queries_for_mother(mother_id) # Assumes you have this function
+    
+    return render_template("asha_patient_profile.html",
+                           mother=mother,
+                           plan=plan,
+                           alerts=alerts,
+                           queries=queries
+                           )
 @app.route("/doctor/patient/<string:mother_id>", methods=["GET", "POST"])
 def doctor_patient_profile(mother_id):
     # Security check: Ensure doctor is logged in and assigned this mother
@@ -553,7 +646,21 @@ def upload_meal():
                 meal_recommendation = recs["recommended_meals"][0]
                 meal_recommendation["reason"] = f"Your last meal was a bit low on some nutrients."
                 print(f"Recommendation generated: {meal_recommendation['Dish Name']}")
-        
+            doctor_id = mother_doc.get("assigned_doctor_id")
+            asha_worker_id = mother_doc.get("assigned_asha_worker_id")
+            mother_name = mother_doc.get("name", "a patient")
+
+            # 2. Create the URL for the new report page
+            #    We use _external=True to get the full URL (e.g., http://...)
+            report_url = url_for('generate_mother_report', mother_id=mother_id, _external=True)
+
+            # 3. Create the notification message
+            message = f"Nutrient deficit detected for {mother_name} after her {meal_type}."
+            
+            # 4. Send notifications
+            create_notification(doctor_id, message, report_url)
+            create_notification(asha_worker_id, message, report_url)
+            
         else:
             # --- B. NO DEFICIT ---
             # Meal was good, no alert needed.

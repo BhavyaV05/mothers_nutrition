@@ -128,6 +128,70 @@
             border-top: 1px solid #e2e8f0;
             margin: 2rem 0;
         }
+
+        /* === NEW STYLES FOR NOTIFICATIONS === */
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #notificationsList {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .notification-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-item a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+        }
+        .notification-item a:hover {
+            color: #667eea;
+        }
+        .notification-item small {
+            color: #6c757d;
+            display: block;
+            margin-top: 4px;
+        }
+        .mark-read-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1.4rem;
+            font-weight: bold;
+            padding: 5px;
+            margin-left: 10px;
+            line-height: 1;
+        }
+        .mark-read-btn:hover {
+            color: #c53030;
+        }
+        /* === END OF NEW STYLES === */
     </style>
 </head>
 <body>
@@ -140,6 +204,12 @@
             </p>
         </header>
 
+        <div class="card" id="notificationsCard">
+            <h3>🔔 Notifications</h3>
+            <div id="notificationsList">
+                <em>Loading notifications...</em>
+            </div>
+        </div>
         <h2>Your Assigned Patients</h2>
         
         {% if mothers %}
@@ -162,5 +232,110 @@
             </div>
         {% endif %}
     </div>
-</body>
+
+    <script>
+        // --- Notification Functions ---
+        
+        /**
+         * Loads unread notifications for the current user
+         */
+        async function loadNotifications() {
+            const listDiv = document.getElementById("notificationsList");
+            listDiv.innerHTML = "<em>Loading notifications...</em>";
+            try {
+                const res = await fetch('/api/notifications');
+                if (!res.ok) {
+                    listDiv.innerHTML = "<em style='color: red;'>Failed to load notifications.</em>";
+                    return;
+                }
+                const notifications = await res.json();
+
+                if (!notifications || notifications.length === 0) {
+                    listDiv.innerHTML = "<em>No new notifications.</em>";
+                    return;
+                }
+
+                let html = "";
+                notifications.forEach(notif => {
+                    html += `
+                        <div class="notification-item" id="notif-${notif._id}">
+                            <div>
+                                <a href="${notif.link_url}" target="_blank" class="notification-link" data-id="${notif._id}">
+                                    ${notif.message}
+                                </a>
+                                <small>${new Date(notif.createdAt).toLocaleString()}</small>
+                            </div>
+                            <button class="mark-read-btn" data-id="${notif._id}" title="Mark as read">&times;</button>
+                        </div>
+                    `;
+                });
+                listDiv.innerHTML = html;
+                
+                addNotificationListeners();
+
+            } catch (err) {
+                console.error("Error loading notifications:", err);
+                listDiv.innerHTML = "<em style='color: red;'>Error loading notifications.</em>";
+            }
+        }
+
+        /**
+         * Marks a notification as read and removes it from the list
+         */
+        async function markAsRead(notificationId) {
+            try {
+                const res = await fetch(`/api/notifications/mark_read/${notificationId}`, {
+                    method: 'POST',
+                    credentials: 'include' // Include session cookie
+                });
+                
+                if (res.ok) {
+                    const notifElement = document.getElementById(`notif-${notificationId}`);
+                    if (notifElement) {
+                        notifElement.style.transition = 'opacity 0.3s ease';
+                        notifElement.style.opacity = 0;
+                        setTimeout(() => {
+                            notifElement.remove();
+                            // Check if list is now empty
+                            if (document.getElementById("notificationsList").children.length === 0) {
+                                 document.getElementById("notificationsList").innerHTML = "<em>No new notifications.</em>";
+                            }
+                        }, 300); // 300ms fade
+                    }
+                }
+            } catch (err) {
+                console.error("Error marking as read:", err);
+            }
+        }
+
+        /**
+         * Adds click listeners to all notification links and buttons
+         */
+        function addNotificationListeners() {
+            // For the "X" (mark read) buttons
+            document.querySelectorAll('.mark-read-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Don't trigger link click
+                    const id = e.target.closest('.mark-read-btn').dataset.id;
+                    markAsRead(id);
+                });
+            });
+
+            // For the notification link itself
+            document.querySelectorAll('.notification-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    // Mark as read when the link is clicked
+                    const id = e.target.closest('.notification-link').dataset.id;
+                    setTimeout(() => markAsRead(id), 100); 
+                    // The link's default action (opening in a new tab) will proceed
+                });
+            });
+        }
+
+        // Load notifications when the page opens
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNotifications();
+        });
+    </script>
+    </body>
 </html>

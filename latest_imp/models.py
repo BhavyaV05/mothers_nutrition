@@ -10,7 +10,43 @@ db = client.get_default_database()
 meals_col = db.get_collection("meals")
 plans_col = db.get_collection("nutrition_plans")
 # mothers_col = db.get_collection("mothers")
+notifications_col = db.get_collection("notifications")
 users_col = db.get_collection("users")
+def create_notification(user_id: str, message: str, link_url: str):
+    """
+    Creates a new notification for a specific user (doctor or asha worker).
+    """
+    if not user_id:
+        print(f"Warning: Tried to create notification but user_id is None. Message: {message}")
+        return
+    try:
+        notification_doc = {
+            "user_id": user_id,       # ID of the doc/asha worker
+            "message": message,
+            "link_url": link_url,     # Link to the visual report
+            "status": "unread",
+            "createdAt": datetime.utcnow()
+        }
+        notifications_col.insert_one(notification_doc)
+        print(f"Notification created for {user_id}: {message}")
+    except Exception as e:
+        print(f"Error creating notification: {e}")
+def get_assigned_mothers_by_asha_id(asha_worker_id):
+    """Fetches a list of mothers assigned to a specific asha worker."""
+    try:
+        mothers = list(users_col.find(
+            {"role": "mother", "assigned_asha_worker_id": asha_worker_id},
+            {"name": 1, "email": 1} # Project only necessary fields
+        ).sort("name", 1))
+
+        # Convert ObjectIds to strings
+        for mother in mothers:
+            mother['_id'] = str(mother['_id'])
+            
+        return mothers
+    except Exception as e:
+        print(f"Error fetching assigned mothers for ASHA: {e}")
+        return []       
 def get_random_doctor_id():
     """
     Fetches the ObjectId (as a string) of a random user with the role 'doctor'.
@@ -33,6 +69,8 @@ def get_random_doctor_id():
     )
     
     return str(doctor_doc['_id']) if doctor_doc else None
+
+
 def get_assigned_mothers(doctor_id):
     """Fetches a list of mothers assigned to a specific doctor."""
     try:
@@ -172,7 +210,34 @@ def get_total_nutrients_for_day(mother_id, meal_date):
             totals[key] += n.get(key, 0)
     return totals
 
+# In models.py
 
+# ... (keep all your existing functions) ...
+
+def get_unread_notifications(user_id: str):
+    """Fetches all unread notifications for a specific user, newest first."""
+    try:
+        return list(notifications_col.find(
+            {"user_id": user_id, "status": "unread"}
+        ).sort("createdAt", -1))
+    except Exception as e:
+        print(f"Error fetching notifications: {e}")
+        return []
+
+def mark_notification_as_read(notification_id: str, user_id: str):
+    """
+    Marks a notification as read.
+    Ensures a user can only mark their own notifications.
+    """
+    try:
+        result = notifications_col.update_one(
+            {"_id": ObjectId(notification_id), "user_id": user_id},
+            {"$set": {"status": "read", "readAt": datetime.utcnow()}}
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error marking notification as read: {e}")
+        return False
 
 def create_alert(mother_id, meal_date, nutrient_deficit, reason=None):
     """Insert a nutrient alert with optional reason and return serialized alert."""

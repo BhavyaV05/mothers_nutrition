@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* ... (keep all your existing styles: .dashboard-header, .mother-card, etc.) ... */
+    
+    /* === ADD THESE NEW STYLES for Notifications === */
+    .card h3 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    #notificationsList {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .notification-item {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .notification-item a {
+        text-decoration: none;
+        color: #333;
+        font-weight: 500;
+    }
+    .notification-item a:hover {
+        color: #667eea;
+    }
+    .notification-item small {
+        color: #6c757d;
+        display: block;
+        margin-top: 4px;
+    }
+    .mark-read-btn {
+        background: none;
+        border: none;
+        color: #667eea;
+        cursor: pointer;
+        font-size: 1.4rem;
+        font-weight: bold;
+        padding: 5px;
+        margin-left: 10px;
+        line-height: 1;
+    }
+    .mark-read-btn:hover {
+        color: #c53030;
+    }
+    /* === END OF NEW STYLES === */
+</style>
+
+<div class="dashboard-header">
+    <h2>👩‍⚕️ ASHA Worker Dashboard</h2>
+    <button id="refreshBtn">🔄 Refresh All</button>
+</div>
+
+<div class="card" id="notificationsCard">
+    <h3>🔔 Notifications</h3>
+    <div id="notificationsList">
+        <em>Loading notifications...</em>
+    </div>
+</div>
+<div class="card">
+    <h3 style="color: #667eea;">Assigned Mothers</h3>
+    <div id="mothersList"><em>Loading...</em></div>
+</div>
+
+<script>
+// === 1. NEW: Notification Functions ===
+
+/**
+ * Loads unread notifications for the current user
+ */
+async function loadNotifications() {
+    const listDiv = document.getElementById("notificationsList");
+    listDiv.innerHTML = "<em>Loading notifications...</em>";
+    try {
+        const res = await fetch('/api/notifications');
+        if (!res.ok) {
+            listDiv.innerHTML = "<em style='color: red;'>Failed to load notifications.</em>";
+            return;
+        }
+        const notifications = await res.json();
+
+        if (!notifications || notifications.length === 0) {
+            listDiv.innerHTML = "<em>No new notifications.</em>";
+            return;
+        }
+
+        let html = "";
+        notifications.forEach(notif => {
+            html += `
+                <div class="notification-item" id="notif-${notif._id}">
+                    <div>
+                        <a href="${notif.link_url}" target="_blank" class="notification-link" data-id="${notif._id}">
+                            ${notif.message}
+                        </a>
+                        <small>${new Date(notif.createdAt).toLocaleString()}</small>
+                    </div>
+                    <button class="mark-read-btn" data-id="${notif._id}" title="Mark as read">&times;</button>
+                </div>
+            `;
+        });
+        listDiv.innerHTML = html;
+        
+        // Add event listeners AFTER rendering the HTML
+        addNotificationListeners();
+
+    } catch (err) {
+        console.error("Error loading notifications:", err);
+        listDiv.innerHTML = "<em style='color: red;'>Error loading notifications.</em>";
+    }
+}
+
+/**
+ * Marks a notification as read and removes it from the list
+ */
+ 
+async function markAsRead(notificationId) {
+    try {
+        const res = await fetch(`/api/notifications/mark_read/${notificationId}`, {
+            method: 'POST',
+            credentials: 'include' // Include session cookie
+        });
+        
+        if (res.ok) {
+            // Remove the notification from the UI
+            const notifElement = document.getElementById(`notif-${notificationId}`);
+            if (notifElement) {
+                notifElement.style.opacity = 0; // Fade out
+                setTimeout(() => {
+                    notifElement.remove();
+                    // Check if list is now empty
+                    if (document.getElementById("notificationsList").children.length === 0) {
+                         document.getElementById("notificationsList").innerHTML = "<em>No new notifications.</em>";
+                    }
+                }, 300); // 300ms fade
+            }
+        }
+    } catch (err) {
+        console.error("Error marking as read:", err);
+    }
+}
+
+/**
+ * Adds click listeners to all notification links and buttons
+ */
+function addNotificationListeners() {
+    // For the "X" (mark read) buttons
+    document.querySelectorAll('.mark-read-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Don't trigger link click
+            const id = e.target.closest('.mark-read-btn').dataset.id;
+            markAsRead(id);
+        });
+    });
+
+    // For the notification link itself
+    document.querySelectorAll('.notification-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            // Mark as read when the link is clicked
+            const id = e.target.closest('.notification-link').dataset.id;
+            // We use a small timeout to ensure the POST request goes through
+            // before the new tab opens and potentially throttles it.
+            setTimeout(() => markAsRead(id), 100); 
+            // The link's default action (opening in a new tab) will proceed
+        });
+    });
+}
+
+// === 2. Your Existing Functions (Unchanged) ===
+
+/**
+ * Helper function to render the query section HTML
+ */
+function renderQueries(queries) {
+    // ... (no change to this function)
+    if (!queries || queries.length === 0) {
+        return "<em style='color: #718096;'>No patient queries.</em>";
+    }
+    let queryHtml = '<div class="queries-list">';
+    // ... (rest of the function is the same)
+    return queryHtml;
+}
+
+/**
+ * Main function to load and render assigned mothers' details
+ */
+async function loadAssignedMothers(){
+    // ... (no change to this function)
+    const res = await fetch('/api/asha/mothers/{{ asha_id }}');
+    const mothers = await res.json();
+    // ... (rest of the function is the same)
+    document.getElementById("mothersList").innerHTML = html;
+}
+
+// === 3. UPDATE: Page Load and Refresh Button ===
+
+document.getElementById("refreshBtn").addEventListener("click", () => {
+    loadAssignedMothers();
+    loadNotifications(); // <-- ADD THIS
+});
+
+// Load all data when the page opens
+loadAssignedMothers();
+loadNotifications(); // <-- ADD THIS
+
+</script>
+
+{% endblock %}
