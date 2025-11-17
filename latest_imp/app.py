@@ -22,7 +22,7 @@ from models import db
 from presets import RDA_PRESETS
 
 # from routes.auth import auth_bp
-from routes.queries import queries_bp  # Import the queries blueprint
+from routes.queries import queries_bp, fetch_queries_for_mother_backend  # Import the queries blueprint
 INDIAN_STATES = [
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
     "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
@@ -859,7 +859,8 @@ def api_asha_mother_details(mother_id):
     for a in alerts:
         a["_id"] = str(a["_id"])
     details["alerts"] = alerts
-
+    queries = fetch_queries_for_mother_backend(mother_id) # Call the new function
+    details["queries"] = queries
     return jsonify(details)
 
 
