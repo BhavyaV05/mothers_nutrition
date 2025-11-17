@@ -2,40 +2,123 @@
 {% block content %}
 
 <style>
-    .card {
-        background-color: #fff;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-        max-width: 800px;
-        margin: 40px auto;
+    .query-container {
+        max-width: 700px;
+        margin: 3rem auto;
+    }
+    
+    .query-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.1);
     }
 
-    label { font-weight: 600; margin-top: 8px; display:block; }
-    input, textarea, button { width:100%; padding:10px; margin-top:6px; border-radius:6px; border:1px solid #dcdcdc }
-    textarea { min-height:140px; resize:vertical }
-    .muted { color:#6c757d; font-size:0.9em }
+    .query-card h2 {
+        color: #667eea;
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+        font-size: 1.75rem;
+    }
+    
+    .description {
+        color: #718096;
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .success-message {
+        background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+        border: 1px solid #68d391;
+        padding: 1.25rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        color: #22543d;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    label { 
+        font-weight: 600;
+        margin-top: 1.25rem;
+        margin-bottom: 0.5rem;
+        display: block;
+        color: #4a5568;
+        font-size: 0.95rem;
+    }
+    
+    input, textarea { 
+        width: 100%;
+        padding: 0.875rem 1rem;
+        margin-top: 0.25rem;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        font-family: inherit;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+    
+    input:focus, textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    textarea { 
+        min-height: 160px;
+        resize: vertical;
+        line-height: 1.6;
+    }
+    
+    button {
+        margin-top: 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        width: 100%;
+    }
+    
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
 </style>
 
-<div class="card">
-    <h2>Post a Query</h2>
-    <p class="muted">Ask a question to the care team. We'll store your query so a doctor or admin can respond.</p>
+<div class="query-container">
+    <div class="query-card">
+        <h2>💬 Post a Query</h2>
+        <p class="description">Ask a question to the care team. We'll store your query so a doctor or admin can respond.</p>
 
-    {% if success %}
-        <div style="background:#e6ffed;border:1px solid #c6f6d5;padding:12px;border-radius:8px;margin-bottom:12px;color:#04662b;">✔️ Your query was posted successfully.</div>
-    {% endif %}
+        {% if success %}
+            <div class="success-message">
+                <span style="font-size: 1.5rem;">✓</span>
+                <span>Your query was posted successfully.</span>
+            </div>
+        {% endif %}
 
-    <form method="post" action="/query">
-        <input type="hidden" name="motherId" value="{{ mother_id or session.get('user_id') }}" />
+        <form method="post" action="/query">
+            <input type="hidden" name="motherId" value="{{ mother_id or session.get('user_id') }}" />
 
-        <label for="subject">Subject</label>
-        <input id="subject" name="subject" required />
+            <label for="subject">Subject</label>
+            <input id="subject" name="subject" required placeholder="What is your query about?" />
 
-        <label for="message">Message</label>
-        <textarea id="message" name="message" required></textarea>
+            <label for="message">Message</label>
+            <textarea id="message" name="message" required placeholder="Describe your question or concern in detail..."></textarea>
 
-        <button type="submit" style="margin-top:12px; background: #007bff; color:#fff; border:none;">Send Query</button>
-    </form>
+            <button type="submit">Send Query</button>
+        </form>
+    </div>
 </div>
 
 {% endblock %}

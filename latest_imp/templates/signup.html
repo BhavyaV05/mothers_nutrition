@@ -2,67 +2,200 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sign Up</title>
+    <title>Sign Up - Mother Nutrition Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; }
-        .container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 450px; }
-        h2 { text-align: center; color: #333; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; margin-top: 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #1e7e34; }
-        .error { color: red; text-align: center; margin-top: 10px; }
-        .footer-link { text-align: center; margin-top: 15px; font-size: 0.9em; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem 1rem;
+        }
+        
+        .container { 
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        h2 { 
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+        
+        .welcome-text {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        
+        h3 {
+            color: #667eea;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding-top: 1.5rem;
+            border-top: 2px solid #f7fafc;
+        }
+        
+        label { 
+            display: block;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+        
+        input, select { 
+            width: 100%;
+            padding: 0.875rem 1rem;
+            margin-top: 0.25rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button { 
+            width: 100%;
+            padding: 1rem;
+            margin-top: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .error { 
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            text-align: center;
+            padding: 0.875rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .footer-link { 
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+        
+        .footer-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
 
-        /* Mother + ASHA field sections */
         #mother-fields, #asha-fields { 
-            border-top: 1px solid #eee; 
-            margin-top: 15px; 
-            padding-top: 15px; 
-            display: none; 
+            display: none;
+        }
+        
+        .container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .container::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 10px;
+        }
+        
+        .container::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
         }
     </style>
 </head>
 
 <body>
 <div class="container">
-    <h2>Create an Account</h2>
+    <h2>Create Account</h2>
+    <p class="welcome-text">Join our community of care</p>
 
     {% if error %}
-        <p class="error">{{ error }}</p>
+        <div class="error">{{ error }}</div>
     {% endif %}
 
     <form method="POST">
-
-        <!-- ROLE -->
-        <label for="role">Registering As:</label>
+        <label for="role">I am registering as:</label>
         <select id="role" name="role" required onchange="toggleFields(this.value)">
             <option value="mother">Mother</option>
             <option value="doctor">Doctor</option>
             <option value="asha">ASHA Worker</option>
         </select>
 
-        <!-- NAME -->
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required>
+        <label for="name">Full Name:</label>
+        <input type="text" id="name" name="name" required placeholder="Enter your name">
 
-        <!-- EMAIL -->
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
+        <label for="email">Email Address:</label>
+        <input type="email" id="email" name="email" required placeholder="you@example.com">
 
-        <!-- PASSWORD -->
         <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-
+        <input type="password" id="password" name="password" required placeholder="Create a strong password">
 
         <!-- MOTHER FIELDS -->
         <div id="mother-fields">
-            <h3>Additional Details (Mother)</h3>
+            <h3>Your Profile Details</h3>
 
             <label for="age">Age:</label>
-            <input type="number" id="age" name="age" min="15" max="55">
+            <input type="number" id="age" name="age" min="15" max="55" placeholder="Your age">
 
-            <label for="cuisine_preference">Preferred Cuisine: </label>
+            <label for="cuisine_preference">Preferred Cuisine:</label>
             <select id="cuisine_preference" name="cuisine_preference">
                 <option value="North Indian">North Indian</option>
                 <option value="South Indian">South Indian</option>
@@ -71,23 +204,17 @@
                 <option value="Western">Western</option>
                 <option value="Asian">Asian</option>
             </select>
-            <label for="allergies">Allergies:</label>
+            
+            <label for="allergies">Food Allergies:</label>
             <select id="allergies" name="allergies">
+                <option value="None">None</option>
                 <option value="Dairy">Dairy</option>
                 <option value="Egg">Egg</option>
                 <option value="Gluten/Wheat">Gluten/Wheat</option>
                 <option value="Cocoa">Cocoa</option>
-                <option value="Nuts/Peanut">Nuts/peanuts</option>
+                <option value="Nuts/Peanut">Nuts/Peanuts</option>
             </select>
-            <!-- <div>
-    <label for="cuisine_preference">Preferred Cuisine (optional):</label>
-    <input type="text" id="cuisine_preference" name="cuisine_preference" placeholder="e.g., North Indian, South Indian">
-</div>
 
-<div>
-    <label for="allergies">Allergies (optional):</label>
-    <input type="text" id="allergies" name="allergies" placeholder="e.g., dairy, peanuts, gluten (comma-separated)">
-</div> -->
             <label for="state">State / Region:</label>
             <select id="state" name="state">
                 {% for state in states %}
@@ -101,7 +228,7 @@
                 <option value="urban">Urban</option>
             </select>
 
-            <label for="income">Annual Household Income Range:</label>
+            <label for="income">Annual Household Income:</label>
             <select id="income" name="income">
                 {% for income in incomes %}
                     <option value="{{ income }}">{{ income }}</option>
@@ -116,27 +243,25 @@
             </select>
         </div>
 
-
         <!-- ASHA FIELDS -->
         <div id="asha-fields">
             <h3>ASHA Worker Details</h3>
 
             <label for="asha_worker_id">Worker ID:</label>
-            <input type="text" id="asha_worker_id" name="asha_worker_id">
+            <input type="text" id="asha_worker_id" name="asha_worker_id" placeholder="Your worker ID">
 
             <label for="phone">Phone Number:</label>
-            <input type="tel" id="phone" name="phone">
+            <input type="tel" id="phone" name="phone" placeholder="Your contact number">
 
             <label for="assigned_area">Assigned Village / Area:</label>
-            <input type="text" id="assigned_area" name="assigned_area">
+            <input type="text" id="assigned_area" name="assigned_area" placeholder="Your assigned area">
         </div>
 
-
-        <button type="submit">Sign Up</button>
+        <button type="submit">Create My Account</button>
     </form>
 
     <div class="footer-link">
-        Already have an account? <a href="{{ url_for('login') }}">Log In</a>
+        Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
     </div>
 </div>
 
@@ -160,7 +285,7 @@ function toggleFields(role) {
         motherInputs.forEach(i => i.required = false);
         ashaInputs.forEach(i => i.required = true);
     }
-    else { // Doctor
+    else {
         mother.style.display = "none";
         asha.style.display = "none";
         motherInputs.forEach(i => i.required = false);
@@ -168,7 +293,6 @@ function toggleFields(role) {
     }
 }
 
-// Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
     toggleFields(document.getElementById("role").value);
 });

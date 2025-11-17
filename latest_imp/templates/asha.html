@@ -1,13 +1,124 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        border: 2px solid #667eea30;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .dashboard-header h2 {
+        color: #667eea;
+        margin: 0;
+        font-size: 1.75rem;
+    }
+    
+    .dashboard-header button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .dashboard-header button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .mother-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 1.75rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .mother-card:hover {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    .mother-card h3 {
+        color: #667eea;
+        margin-top: 0;
+        margin-bottom: 1.25rem;
+        font-size: 1.5rem;
+        border-bottom: 2px solid #f7fafc;
+        padding-bottom: 0.75rem;
+    }
+    
+    .mother-card p {
+        color: #4a5568;
+        margin: 0.5rem 0;
+        line-height: 1.6;
+    }
+    
+    .mother-card strong {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    
+    .mother-card h4 {
+        color: #764ba2;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .mother-card pre {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        overflow: auto;
+        border: 1px solid #e2e8f0;
+        font-size: 0.85rem;
+    }
+    
+    .alert-item {
+        border: 1px solid #fc8181;
+        background: #fff5f5;
+        padding: 1rem;
+        margin: 0.75rem 0;
+        border-radius: 10px;
+    }
+    
+    .alert-item strong {
+        color: #c53030;
+    }
+    
+    .alert-item pre {
+        background: white;
+        margin-top: 0.5rem;
+    }
+    
+    #mothersList em {
+        color: #718096;
+        font-style: italic;
+    }
+</style>
+
+<div class="dashboard-header">
+    <h2>👩‍⚕️ ASHA Worker Dashboard</h2>
+    <button id="refreshBtn">🔄 Refresh</button>
+</div>
+
 <div class="card">
-  <h2>ASHA Worker Dashboard</h2>
-
-  <button id="refreshBtn">🔄 Refresh</button>
-
-  <h3>Assigned Mothers</h3>
-  <div id="mothersList"><em>Loading...</em></div>
+    <h3 style="color: #667eea;">Assigned Mothers</h3>
+    <div id="mothersList"><em>Loading...</em></div>
 </div>
 
 <script>
@@ -26,7 +137,7 @@ async function loadAssignedMothers(){
     const details = await fetch(`/api/asha/mother_details/${m._id}`).then(r=>r.json());
 
     html += `
-      <div class="mother-card" style="border:1px solid #ddd; padding:14px; border-radius:8px; margin-bottom:20px;">
+      <div class="mother-card">
         
         <h3>${details.profile.name || m.email}</h3>
         <p><strong>Age:</strong> ${details.profile.age}</p>
@@ -35,35 +146,31 @@ async function loadAssignedMothers(){
         <p><strong>Income:</strong> ${details.profile.income}</p>
         <p><strong>Diet:</strong> ${details.profile.diet}</p>
 
-        <h4>Doctor’s Nutrition Plan</h4>
+        <h4>Doctor's Nutrition Plan</h4>
         ${
           details.plan && details.plan.required_nutrients
-            ? `<pre style="background:#f3f3f3;padding:10px;border-radius:5px;">
-                ${JSON.stringify(details.plan.required_nutrients, null, 2)}
-              </pre>`
-            : "<em>No active plan</em>"
+            ? `<pre>${JSON.stringify(details.plan.required_nutrients, null, 2)}</pre>`
+            : "<em style='color: #718096;'>No active plan</em>"
         }
 
         <h4>Weekly Nutrition Summary</h4>
         ${
           details.weekly_meals.length
-            ? `<pre style="background:#fafafa;padding:10px;border-radius:5px;">
-                ${JSON.stringify(details.weekly_meals, null, 2)}
-              </pre>`
-            : "<em>No meals uploaded this week</em>"
+            ? `<pre>${JSON.stringify(details.weekly_meals, null, 2)}</pre>`
+            : "<em style='color: #718096;'>No meals uploaded this week</em>"
         }
 
-        <h4>Alerts</h4>
+        <h4>⚠️ Alerts</h4>
         ${
           details.alerts.length
             ? details.alerts.map(a => `
-                <div style="border:1px solid #ff6b6b; padding:8px; margin:4px; border-radius:6px;">
+                <div class="alert-item">
                   <strong>Date:</strong> ${a.mealDate}<br>
                   <strong>Deficit:</strong>
                   <pre>${JSON.stringify(a.nutrient_deficit, null, 2)}</pre>
                 </div>
               `).join('')
-            : "<em>No active alerts</em>"
+            : "<em style='color: #718096;'>No active alerts</em>"
         }
       </div>
     `;

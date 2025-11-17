@@ -2,209 +2,268 @@
 {% block content %}
 
 <style>
-    /* All your CSS styles */
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f7fa;
-        color: #333;
+    .recommendation-card {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        border: 2px solid #667eea30;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.1);
+    }
+    
+    .recommendation-card h2 {
+        color: #667eea;
+        margin-bottom: 1rem;
+        font-size: 1.4rem;
+    }
+    
+    .recommendation-card h3 {
+        color: #2c3e50;
+        margin: 1rem 0;
+        font-size: 1.2rem;
+    }
+    
+    .recommendation-card p {
+        color: #4a5568;
         line-height: 1.6;
     }
-    .card {
-        background-color: #ffffff;
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        padding: 24px;
-        margin-bottom: 24px;
-    }
-    h2, h3 {
-        color: #007bff;
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 8px;
-        margin-top: 0;
-        margin-bottom: 16px;
-    }
-    label {
-        display: block;
-        margin-top: 12px;
-        margin-bottom: 4px;
-        font-weight: 600;
-        color: #555;
-    }
-    input:not([type="file"]), select, button {
-        width: 100%;
-        padding: 12px;
-        margin-bottom: 8px;
-        border: 1px solid #ced4da;
-        border-radius: 8px;
-        box-sizing: border-box;
-        font-size: 16px;
-    }
-    button {
-        cursor: pointer;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        font-weight: bold;
-    }
-    button:hover { background-color: #0056b3; }
-    #refreshHistory {
-        background-color: #6c757d;
-        margin-bottom: 16px;
-    }
-    #refreshHistory:hover { background-color: #5a6268; }
     
-    /* NEW Recommendation Box Style */
-    .recommendation-box {
-        background: #f4f8ff; 
-        border: 1px solid #c9dbff; 
-        border-radius: 12px; 
-        padding: 24px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    .recommendation-card a {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
-    .recommendation-box h3 {
-        color: #0056b3; /* Darker blue */
-        border: none; /* No line */
+    
+    .recommendation-card a:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
     }
-    .recommendation-box a {
-        font-weight: bold;
-        color: #007bff;
+    
+    .info-card {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
     }
-
-    #resultArea, #mealHistory {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
+    
+    .info-card h3 {
+        color: #667eea;
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
     }
+    
     .meal-item {
-        border-bottom: 1px solid #e9ecef;
-        padding: 12px 0;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s;
     }
-    .meal-item:last-child { border-bottom: none; }
-    .meal-item strong { color: #007bff; font-size: 1.1em; }
-    pre {
-        background-color: #e9ecef;
-        padding: 10px;
-        border-radius: 6px;
-        overflow-x: auto;
+    
+    .meal-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateX(4px);
     }
-    /* ... (keep your floating button and modal styles) ... */
+    
+    .meal-item strong {
+        color: #667eea;
+        font-size: 1.1em;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .meal-item small {
+        color: #718096;
+    }
+    
     .floating-btn {
         position: fixed;
-        right: 20px;
-        bottom: 20px;
-        width: 60px;
-        height: 60px;
+        right: 24px;
+        bottom: 24px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #007bff, #0056b3);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
         border: none;
-        font-size: 24px;
+        font-size: 28px;
         z-index: 9999;
         cursor: pointer;
+        transition: all 0.3s ease;
     }
+    
+    .floating-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+    }
+    
     .modal { 
-        display: none; 
-        position: fixed; 
-        z-index: 10000; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
-        height: 100%; 
-        background-color: rgba(0,0,0,0.5); 
-        overflow-y: auto; /* Allow scrolling in modal background */
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        overflow-y: auto;
     }
+    
     .modal-content { 
-        background-color: #fff; 
-        margin: 5% auto; 
-        padding: 30px; 
-        border-radius: 12px; 
-        width: 90%; 
-        max-width: 700px; 
-        max-height: 85vh; /* Limit height to 85% of viewport */
-        overflow-y: auto; /* Allow scrolling inside modal content */
+        background-color: #fff;
+        margin: 3% auto;
+        padding: 2.5rem;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
+    
     .close-modal { 
-        color: #aaa; 
-        float: right; 
-        font-size: 32px; 
-        font-weight: bold; 
-        cursor: pointer; 
+        color: #a0aec0;
+        float: right;
+        font-size: 32px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
     }
+    
     .close-modal:hover {
-        color: #000;
+        color: #667eea;
     }
-    /* ... (keep query history styles) ... */
+    
+    .modal-content h2 {
+        color: #667eea;
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+    
     .query-history-item { 
-        background: #f8f9fa; 
-        border-left: 4px solid #007bff; 
-        padding: 12px; 
-        margin-bottom: 12px; 
-        border-radius: 6px; 
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        border-radius: 10px;
+        transition: all 0.2s;
     }
+    
+    .query-history-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    
     .query-answer { 
-        background: #e6f7ff; 
-        border-left: 4px solid #28a745; 
-        padding: 12px; 
-        margin-top: 8px; 
-        border-radius: 4px; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background: #e6f7ff;
+        border-left: 4px solid #48bb78;
+        padding: 1.25rem;
+        margin-top: 1rem;
+        border-radius: 10px;
     }
-    .query-answer p {
-        font-size: 1em;
-        line-height: 1.5;
-        margin: 6px 0 0 0;
+    
+    .query-answer strong {
+        color: #48bb78;
     }
+    
     #queryModal textarea { 
-        width: 100%; 
-        min-height: 100px; 
-        padding: 10px; 
-        border: 1px solid #ced4da; 
-        border-radius: 6px; 
+        width: 100%;
+        min-height: 120px;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
         resize: vertical;
         font-family: inherit;
+        transition: all 0.2s;
+    }
+    
+    #queryModal textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    #querySuccess {
+        background: #c6f6d5;
+        color: #22543d;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+        border: 1px solid #9ae6b4;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    #refreshHistory {
+        background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+        margin-bottom: 1.5rem;
+    }
+    
+    #resultArea {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    #mealHistory {
+        min-height: 100px;
     }
 </style>
 
-<h2>Your Daily Recommendation</h2>
+<h2 style="color: #667eea; margin-bottom: 1.5rem;">Your Daily Recommendation</h2>
 
 <div id="recommendation-area">
     {% if latest_recommendation %}
-        <div class="recommendation-box">
+        <div class="recommendation-card">
             <p><strong>{{ latest_recommendation.reason }}</strong></p>
             <h3>For your next meal, try: {{ latest_recommendation['Dish Name'] }}</h3>
-            <p>
-                We found a recipe for you:
-                <a href="{{ latest_recommendation['recipe_link'] }}" target="_blank">
-                    View Recipe
-                </a>
-            </p>
+            <p>We found a recipe for you:</p>
+            <a href="{{ latest_recommendation['recipe_link'] }}" target="_blank">
+                🍳 View Recipe
+            </a>
         </div>
     {% else %}
-        <p>You're doing great! No specific recommendations right now. Keep logging your meals!</p>
+        <div class="info-card">
+            <p>✨ You're doing great! No specific recommendations right now. Keep logging your meals!</p>
+        </div>
     {% endif %}
 </div>
 
----
-
-<div class="card" style="background-color: #e9f5ff;">
-    <h3>Assigned Doctor</h3>
+<div class="info-card">
+    <h3>👨‍⚕️ Your Assigned Doctor</h3>
     <div id="doctorDetails"><em>Checking assignment...</em></div>
 </div>
 <input type="hidden" id="assignedDoctorId" value="{{ assigned_doctor_id }}" />
 
----
-
 <div class="card">
-    <h2>Upload Meal Photo</h2>
-    <p>Upload your meal photo, select the meal type and date. The system will analyze your meal and update your recommendation.</p>
+    <h2>📸 Upload Meal Photo</h2>
+    <p style="color: #718096; margin-bottom: 1.5rem;">Upload your meal photo, select the meal type and date. The system will analyze your meal and update your recommendation.</p>
 
     <form id="uploadForm">
         <input type="hidden" id="motherId" name="motherId" value="{{ mother_id }}" />
+        
         <label for="mealType">Meal Type</label>
         <select id="mealType" name="mealType" required>
             <option value="">-- Select Meal --</option>
@@ -213,36 +272,33 @@
             <option value="dinner">Dinner</option>
             <option value="snack">Snack</option>
         </select>
+        
         <label for="mealDate">Meal Date</label>
         <input id="mealDate" name="mealDate" type="date" required />
+        
         <label for="image">Meal Image</label>
-        <input id="image" name="image" type="file" accept="image/*" required style="padding: 6px;"/> 
-        <button type="submit" style="margin-top:16px;">📸 Upload & Analyze Meal</button>
+        <input id="image" name="image" type="file" accept="image/*" required style="padding: 0.75rem; background: white;"/> 
+        
+        <button type="submit" style="margin-top:1.5rem;">📸 Upload & Analyze Meal</button>
     </form>
 </div>
 
----
-
 <div class="card">
-    <h3>Upload Result</h3>
+    <h3 style="color: #667eea;">Upload Result</h3>
     <div id="resultArea"><em>No upload yet.</em></div>
 </div>
 
----
-
 <div class="card">
-    <h3>Your Meal History</h3>
+    <h3 style="color: #667eea;">📋 Your Meal History</h3>
     <button id="refreshHistory">🔄 Refresh History</button>
     <div id="mealHistory"><em>Loading...</em></div>
 </div>
-
 
 <script>
 function getMotherId() {
     return document.getElementById("motherId").value.trim();
 }
 
-// --- Load Doctor Details ---
 async function loadDoctorDetails() {
     const doctorId = document.getElementById("assignedDoctorId").value.trim();
     const detailsDiv = document.getElementById("doctorDetails");
@@ -256,9 +312,9 @@ async function loadDoctorDetails() {
         const doctor = await res.json();
         if (res.ok) {
             detailsDiv.innerHTML = `
-                <p>
-                    <strong>Dr. ${doctor.name || 'Name not available'}</strong><br>
-                    Email: ${doctor.email || 'N/A'}
+                <p style="margin: 0;">
+                    <strong style="color: #2c3e50;">Dr. ${doctor.name || 'Name not available'}</strong><br>
+                    <span style="color: #718096;">Email: ${doctor.email || 'N/A'}</span>
                 </p>
             `;
         } else {
@@ -269,7 +325,6 @@ async function loadDoctorDetails() {
     }
 }
 
-// --- Load Meal History ---
 async function loadMealHistory() {
     const motherId = getMotherId();
     if (!motherId) return;
@@ -285,18 +340,17 @@ async function loadMealHistory() {
 
         let html = "";
         meals.forEach((m) => {
-            const n = m.nutrients || {};
             const dish = m.dish_name || "Unknown Dish";
             const mealType = m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal";
             const mealDate = m.mealDate || "Date Unavailable";
 
             html += `
                 <div class="meal-item">
-                    <div>
-                        <strong>${dish}</strong>
-                        <span>${mealType} — ${mealDate}</span>
+                    <strong>${dish}</strong>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                        <span style="color: #4a5568;">${mealType} • ${mealDate}</span>
+                        <small style="color: #718096;">Status: ${m.status || "unknown"}</small>
                     </div>
-                    <small style="color: #6c757d;">Status: ${m.status || "unknown"}</small>
                 </div>
             `;
         });
@@ -307,113 +361,101 @@ async function loadMealHistory() {
     }
 }
 
-// Refresh button
 document.getElementById("refreshHistory").addEventListener("click", () => {
     loadMealHistory();
 });
 
-// --- Handle Meal Upload (This is the critical part) ---
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
     const fd = new FormData(form);
-    document.getElementById("resultArea").innerHTML = "<em><div style='color: #007bff;'>Uploading and Analyzing... please wait.</div></em>";
+    document.getElementById("resultArea").innerHTML = "<div style='color: #667eea;'><strong>⏳ Uploading and Analyzing...</strong><br>Please wait while we process your meal.</div>";
 
     try {
         const res = await fetch("/api/meals/upload", { method: "POST", body: fd });
-        const data = await res.json(); // This is the response from upload_meal
+        const data = await res.json();
 
         if (!res.ok) {
             document.getElementById("resultArea").innerHTML =
-                `<strong style='color: red;'>Upload Error (${res.status})</strong>
-                 <pre>` + JSON.stringify(data, null, 2) + "</pre>";
+                `<div style='color: #e53e3e;'><strong>❌ Upload Error (${res.status})</strong></div>
+                 <pre style="margin-top: 1rem;">` + JSON.stringify(data, null, 2) + "</pre>";
             return;
         }
 
-        // 1. Show a simple success message in the "Upload Result"
         document.getElementById("resultArea").innerHTML = `
-            <strong style="color: green;">✅ Upload Successful!</strong>
-            <p>Your meal <strong>${data.meal.dish_name}</strong> has been logged.</p>
+            <div style="color: #48bb78;">
+                <strong>✅ Upload Successful!</strong>
+                <p style="margin-top: 0.5rem;">Your meal <strong>${data.meal.dish_name}</strong> has been logged.</p>
+            </div>
         `;
         
-        // --- THIS IS THE MAGIC ---
-        // 2. Get the recommendation from the JSON response
         const recommendation = data.next_meal_recommendation;
         const recArea = document.getElementById("recommendation-area");
         let recHtml = "";
 
         if (recommendation) {
-            // 3. Build the NEW HTML for the recommendation
             recHtml = `
-                <div class="recommendation-box">
+                <div class="recommendation-card">
                     <p><strong>${recommendation.reason}</strong></p>
                     <h3>For your next meal, try: ${recommendation['Dish Name']}</h3>
-                    <p>
-                        We found a recipe for you:
-                        <a href="${recommendation['recipe_link']}" target="_blank">
-                            View Recipe
-                        </a>
-                    </p>
+                    <p>We found a recipe for you:</p>
+                    <a href="${recommendation['recipe_link']}" target="_blank">
+                        🍳 View Recipe
+                    </a>
                 </div>
             `;
         } else {
-            // 3b. Build the HTML for "no recommendation"
-            recHtml = "<p>You're doing great! No specific recommendations right now.</p>";
+            recHtml = `
+                <div class="info-card">
+                    <p>✨ You're doing great! No specific recommendations right now.</p>
+                </div>
+            `;
         }
         
-        // 4. Instantly replace the old recommendation with the new one
         recArea.innerHTML = recHtml;
-        // --- END OF MAGIC ---
-
-        // 5. Refresh the meal history list
         loadMealHistory();
 
     } catch (err) {
         document.getElementById("resultArea").innerHTML =
-            "<pre style='color: red;'>❌ Upload failed: " + err.message + "</pre>";
+            "<div style='color: #e53e3e;'><strong>❌ Upload failed:</strong> " + err.message + "</div>";
     }
 });
 
-// --- Initialize on page load ---
 window.addEventListener("load", () => {
     loadMealHistory();
-    loadDoctorDetails(); 
-    // We removed loadAlerts() and loadRemainingNutrients()
+    loadDoctorDetails();
 });
-
 </script>
 
 <button class="floating-btn" id="openQueryBtn" title="Ask a Question">?</button>
 
-<!-- Query Modal -->
 <div id="queryModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" id="closeModal">&times;</span>
-        <h2 style="margin-top: 0; color: #007bff;">📩 Ask a Question</h2>
+        <h2>💬 Ask a Question</h2>
         
         <form id="queryForm">
-            <label for="querySubject" style="font-weight: 600; margin-bottom: 4px;">Subject</label>
-            <input type="text" id="querySubject" name="subject" required style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; margin-bottom: 12px;" />
+            <label for="querySubject">Subject</label>
+            <input type="text" id="querySubject" name="subject" required placeholder="What's your question about?" />
             
-            <label for="queryMessage" style="font-weight: 600; margin-bottom: 4px;">Your Question</label>
-            <textarea id="queryMessage" name="message" required></textarea>
+            <label for="queryMessage">Your Question</label>
+            <textarea id="queryMessage" name="message" required placeholder="Describe your question in detail..."></textarea>
             
-            <button type="submit" style="background: #007bff; color: #fff; border: none; padding: 12px; border-radius: 6px; width: 100%; font-weight: bold;">Send Query</button>
+            <button type="submit">Send Query</button>
         </form>
 
-        <div id="querySuccess" style="display: none; background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; margin-top: 16px;">
+        <div id="querySuccess" style="display: none;">
             ✅ Your query has been sent successfully!
         </div>
 
-        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e9ecef;" />
+        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e2e8f0;" />
 
-        <h3 style="color: #007bff;">📋 Your Past Queries</h3>
-        <div id="queryHistoryArea"><em style="color: #6c757d;">Loading...</em></div>
+        <h3 style="color: #667eea; margin-bottom: 1rem;">📋 Your Past Queries</h3>
+        <div id="queryHistoryArea"><em style="color: #718096;">Loading...</em></div>
     </div>
 </div>
 
 <script>
-// Query Modal functionality
 const modal = document.getElementById("queryModal");
 const openBtn = document.getElementById("openQueryBtn");
 const closeBtn = document.getElementById("closeModal");
@@ -437,7 +479,6 @@ window.onclick = function(event) {
     }
 }
 
-// Submit query
 document.getElementById("queryForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const subject = document.getElementById("querySubject").value;
@@ -446,15 +487,9 @@ document.getElementById("queryForm").addEventListener("submit", async (e) => {
     try {
         const res = await fetch("/api/queries/create", {
             method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({
-                subject: subject,
-                message: message,
-                category: "general"
-            })
+            body: JSON.stringify({ subject, message, category: "general" })
         });
 
         const data = await res.json();
@@ -470,20 +505,17 @@ document.getElementById("queryForm").addEventListener("submit", async (e) => {
             alert("Failed to send query: " + (data.error || "Unknown error"));
         }
     } catch (err) {
-        alert("Failed to send query. Please try again. Error: " + err.message);
+        alert("Failed to send query. Please try again.");
     }
 });
 
-// Load query history for this mother
 async function loadQueryHistory() {
     try {
-        const res = await fetch("/api/queries/my-queries", {
-            credentials: 'include'
-        });
+        const res = await fetch("/api/queries/my-queries", { credentials: 'include' });
         const data = await res.json();
 
         if (!data.success || !Array.isArray(data.queries) || data.queries.length === 0) {
-            document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #6c757d;'>No queries yet.</em>";
+            document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #718096;'>No queries yet.</em>";
             return;
         }
 
@@ -491,54 +523,51 @@ async function loadQueryHistory() {
         data.queries.forEach(q => {
             const date = new Date(q.createdAt).toLocaleString();
             
-            // Determine status badge color
-            let statusColor = '#6c757d'; // default gray
-            if (q.status === 'resolved' || q.status === 'answered') statusColor = '#28a745'; // green
-            else if (q.status === 'in-progress') statusColor = '#007bff'; // blue
-            else if (q.status === 'pending') statusColor = '#ffc107'; // yellow
+            let statusColor = '#718096';
+            if (q.status === 'resolved' || q.status === 'answered') statusColor = '#48bb78';
+            else if (q.status === 'in-progress') statusColor = '#667eea';
+            else if (q.status === 'pending') statusColor = '#ed8936';
             
             html += `
                 <div class="query-history-item">
-                    <strong style="color: #007bff;">${q.subject}</strong>
-                    <p style="margin: 8px 0; color: #333;">${q.message}</p>
-                    <small style="color: #6c757d;">
-                        ${date} • Status: 
-                        <strong style="color: ${statusColor}; text-transform: uppercase;">
+                    <strong style="color: #667eea; font-size: 1.05em;">${q.subject}</strong>
+                    <p style="margin: 0.75rem 0; color: #4a5568;">${q.message}</p>
+                    <small style="color: #718096;">
+                        ${date} • 
+                        <span class="status-badge" style="background: ${statusColor}20; color: ${statusColor};">
                             ${q.status}
-                        </strong>
+                        </span>
                     </small>
             `;
             
-            // Show all replies if they exist
             if (q.replies && q.replies.length > 0) {
-                html += `<div style="margin-top: 12px;">`;
+                html += `<div style="margin-top: 1rem;">`;
                 q.replies.forEach(reply => {
                     const replyDate = new Date(reply.repliedAt).toLocaleString();
                     html += `
                         <div class="query-answer">
-                            <strong style="color: #28a745;">✓ ${reply.doctorName} replied:</strong>
-                            <p style="margin: 6px 0 0 0; color: #333;">${reply.message}</p>
-                            <small style="color: #6c757d;">${replyDate}</small>
+                            <strong>✓ ${reply.doctorName} replied:</strong>
+                            <p style="margin: 0.5rem 0 0 0; color: #2c3e50;">${reply.message}</p>
+                            <small style="color: #718096;">${replyDate}</small>
                         </div>
                     `;
                 });
                 html += `</div>`;
             } else if (q.response) {
-                // Handle old-style query format with single 'response' field
                 const replyDate = q.respondedAt ? new Date(q.respondedAt).toLocaleString() : 'Date unavailable';
                 html += `
-                    <div style="margin-top: 12px;">
+                    <div style="margin-top: 1rem;">
                         <div class="query-answer">
-                            <strong style="color: #28a745;">✓ Doctor replied:</strong>
-                            <p style="margin: 6px 0 0 0; color: #333;">${q.response}</p>
-                            <small style="color: #6c757d;">${replyDate}</small>
+                            <strong>✓ Doctor replied:</strong>
+                            <p style="margin: 0.5rem 0 0 0; color: #2c3e50;">${q.response}</p>
+                            <small style="color: #718096;">${replyDate}</small>
                         </div>
                     </div>
                 `;
             } else if (q.status === 'pending') {
                 html += `
-                    <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px;">
-                        <small style="color: #856404;">⏳ Waiting for doctor's response...</small>
+                    <div style="margin-top: 0.75rem; padding: 0.75rem; background: #fef3c7; border-radius: 8px;">
+                        <small style="color: #92400e;">⏳ Waiting for doctor's response...</small>
                     </div>
                 `;
             }
@@ -548,8 +577,7 @@ async function loadQueryHistory() {
 
         document.getElementById("queryHistoryArea").innerHTML = html;
     } catch (err) {
-        console.error("Query history error:", err);
-        document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #dc3545;'>Failed to load query history.</em>";
+        document.getElementById("queryHistoryArea").innerHTML = "<em style='color: #e53e3e;'>Failed to load query history.</em>";
     }
 }
 </script>

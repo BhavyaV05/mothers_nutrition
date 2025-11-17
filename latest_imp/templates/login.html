@@ -2,54 +2,159 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Login - Mother Nutrition Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Basic styling for clarity */
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; }
-        .container { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 350px; }
-        h2 { text-align: center; color: #333; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem;
+        }
+        
+        .container { 
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        h2 { 
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+        
+        .welcome-text {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        
+        label { 
+            display: block;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+        
         input[type="email"], input[type="password"], select {
-            width: 100%; padding: 10px; margin-top: 5px;
-            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+            width: 100%;
+            padding: 0.875rem 1rem;
+            margin-top: 0.25rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s;
         }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         button {
-            width: 100%; padding: 10px; margin-top: 20px;
-            background-color: #007bff; color: white; border: none; border-radius: 4px;
-            cursor: pointer; font-size: 16px;
+            width: 100%;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
-        button:hover { background-color: #0056b3; }
-        .error { color: red; text-align: center; margin-top: 10px; }
-        .footer-link { text-align: center; margin-top: 15px; font-size: 0.9em; }
+        
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .error { 
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            text-align: center;
+            padding: 0.875rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .footer-link { 
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+        
+        .footer-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>User Login </h2>
+        <h2>Welcome Back</h2>
+        <p class="welcome-text">Sign in to access your account</p>
+        
         {% if error %}
-            <p class="error">{{ error }}</p>
+            <div class="error">{{ error }}</div>
         {% endif %}
 
         <form method="POST">
-
-            <label for="role">Role:</label>
+            <label for="role">I am a:</label>
             <select id="role" name="role" required>
                 <option value="mother" {% if request.form.get('role') == 'mother' %}selected{% endif %}>Mother</option>
                 <option value="doctor" {% if request.form.get('role') == 'doctor' %}selected{% endif %}>Doctor</option>
                 <option value="asha" {% if request.form.get('role') == 'asha' %}selected{% endif %}>ASHA Worker</option>
             </select>
 
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required value="{{ request.form.get('email', '') }}">
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required value="{{ request.form.get('email', '') }}" placeholder="you@example.com">
 
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" id="password" name="password" required placeholder="Enter your password">
 
-            <button type="submit">Log In</button>
+            <button type="submit">Sign In</button>
         </form>
 
         <div class="footer-link">
-            Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a>
+            Don't have an account? <a href="{{ url_for('signup') }}">Create one</a>
         </div>
     </div>
 </body>

@@ -4,45 +4,294 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Patient Profile - {{ mother.name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        a { color: #007bff; }
-        .container { max-width: 900px; margin: auto; }
-        /* MODIFIED: More columns for more nutrients */
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; }
-        .form-group { display: flex; flex-direction: column; }
-        .form-group label { font-weight: bold; font-size: 0.9em; margin-bottom: 3px; }
-        .form-group input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-        .meal-section { background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        h1, h2, h3 { color: #333; }
-        button { background: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #0056b3; }
-        .preset-bar { margin-bottom: 20px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        /* Flash messages */
-        .flash { padding: 15px; margin-bottom: 20px; border-radius: 5px; }
-        .flash.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: #2c3e50;
+        }
         
-        /* Queries section */
-        .queries-section { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-top: 30px; }
-        .query-item { background: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin-bottom: 15px; border-radius: 6px; }
-        .query-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .query-status { padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
-        .status-open { background: #fff3cd; color: #856404; }
-        .status-answered { background: #d4edda; color: #155724; }
-        .query-response { background: #e6f7ff; border-left: 4px solid #28a745; padding: 12px; margin-top: 10px; border-radius: 4px; }
-        .response-form { margin-top: 10px; }
-        .response-form textarea { width: 100%; min-height: 80px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; }
-        .response-form button { margin-top: 8px; padding: 8px 16px; font-size: 14px; }
+        a { 
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .container { 
+            max-width: 1100px;
+            margin: auto;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08);
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-size: 1.875rem;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        h3 {
+            color: #764ba2;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        
+        .patient-info {
+            color: #718096;
+            margin-bottom: 2rem;
+        }
+        
+        .form-grid { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+        
+        .form-group { 
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label { 
+            font-weight: 600;
+            font-size: 0.85em;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+        
+        .form-group input { 
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .meal-section { 
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        button { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            margin-top: 1rem;
+        }
+        
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .preset-bar { 
+            background: #e6f7ff;
+            padding: 1.25rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            border: 1px solid #91d5ff;
+        }
+        
+        .preset-bar strong {
+            color: #0050b3;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .preset-bar select {
+            width: 100%;
+            max-width: 400px;
+            padding: 0.75rem;
+            border: 2px solid #91d5ff;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .preset-bar small {
+            color: #096dd9;
+        }
+        
+        .flash { 
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .flash.success { 
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .flash.error { 
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .queries-section { 
+            background: #fafbfc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .query-item { 
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .query-header { 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .query-header strong {
+            color: #667eea;
+            font-size: 1.05em;
+        }
+        
+        .query-status { 
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-open { 
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-answered { 
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .query-response { 
+            background: #e6f7ff;
+            border-left: 4px solid #48bb78;
+            padding: 1rem;
+            margin-top: 0.75rem;
+            border-radius: 8px;
+        }
+        
+        .query-response strong {
+            color: #48bb78;
+        }
+        
+        .response-form { 
+            margin-top: 1rem;
+        }
+        
+        .response-form textarea { 
+            width: 100%;
+            min-height: 100px;
+            padding: 0.875rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .response-form textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .response-form button { 
+            margin-top: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+        }
+        
+        hr {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 2.5rem 0;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-family: inherit;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="{{ url_for('doctor_page') }}">&larr; Back to Dashboard</a>
+        <a href="{{ url_for('doctor_page') }}" class="back-link">← Back to Dashboard</a>
         
         <h1>Nutrition Plan for {{ mother.name }}</h1>
-        <p>Email: {{ mother.email }} | Age: {{ mother.age }}</p>
+        <p class="patient-info">Email: {{ mother.email }} | Age: {{ mother.age }}</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -50,10 +299,55 @@
                     <div class="flash {{ category }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
-        {% endwith %}
+            {% endwith %}
+            
+            <div class="queries-section">
+                <h2>💬 Patient Queries</h2>
+                {% if queries and queries|length > 0 %}
+                    {% for query in queries %}
+                    <div class="query-item">
+                        <div class="query-header">
+                            <strong>{{ query.subject }}</strong>
+                            {% set has_response = query.response or (query.replies and query.replies|length > 0) %}
+                            <span class="query-status {{ 'status-answered' if has_response else 'status-open' }}">
+                                {{ 'ANSWERED' if has_response else 'OPEN' }}
+                            </span>
+                        </div>
+                        <p style="margin: 0.75rem 0; color: #4a5568;">{{ query.message }}</p>
+                        <small style="color: #718096;">{{ query.createdAt.strftime('%Y-%m-%d %H:%M') if query.createdAt else 'N/A' }}</small>
+                        
+                        {% if query.response %}
+                        <div class="query-response">
+                            <strong>✓ Your Response:</strong>
+                            <p style="margin: 0.5rem 0 0 0;">{{ query.response }}</p>
+                        </div>
+                        {% elif query.replies and query.replies|length > 0 %}
+                            {% for reply in query.replies %}
+                            <div class="query-response">
+                                <strong>✓ {{ reply.doctorName }}:</strong>
+                                <p style="margin: 0.5rem 0 0 0;">{{ reply.message }}</p>
+                                <small style="color: #718096;">{{ reply.repliedAt.strftime('%Y-%m-%d %H:%M') if reply.repliedAt else '' }}</small>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {% if not has_response %}
+                        <div class="response-form">
+                            <form method="POST" action="{{ url_for('respond_to_query', query_id=query._id) }}">
+                                <textarea name="response" placeholder="Type your response here..." required></textarea>
+                                <button type="submit">Send Response</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #718096;"><em>No queries from this patient yet.</em></p>
+                {% endif %}
+            </div>
 
         <div class="preset-bar">
-            <strong>Load Preset:</strong>
+            <strong>Load Preset Template:</strong>
             <select id="preset-selector">
                 <option value="">-- Select a template --</option>
                 <option value="trimester_1">Pregnancy (1st Trimester)</option>
@@ -63,68 +357,20 @@
             </select>
             <small>(This will fill the form below. Click Save to apply.)</small>
         </div>
-        
+
+
         <hr>
 
-        <!-- Queries Section -->
-        <div class="queries-section">
-            <h2>Patient Queries</h2>
-            {% if queries and queries|length > 0 %}
-                {% for query in queries %}
-                <div class="query-item">
-                    <div class="query-header">
-                        <strong style="color: #007bff;">{{ query.subject }}</strong>
-                        {% set has_response = query.response or (query.replies and query.replies|length > 0) %}
-                        <span class="query-status {{ 'status-answered' if has_response else 'status-open' }}">
-                            {{ 'ANSWERED' if has_response else 'OPEN' }}
-                        </span>
-                    </div>
-                    <p style="margin: 8px 0; color: #333;">{{ query.message }}</p>
-                    <small style="color: #6c757d;">{{ query.createdAt.strftime('%Y-%m-%d %H:%M') if query.createdAt else 'N/A' }}</small>
-                    
-                    {% if query.response %}
-                    <div class="query-response">
-                        <strong style="color: #28a745;">✓ Your Response:</strong>
-                        <p style="margin: 6px 0 0 0;">{{ query.response }}</p>
-                    </div>
-                    {% elif query.replies and query.replies|length > 0 %}
-                        {% for reply in query.replies %}
-                        <div class="query-response">
-                            <strong style="color: #28a745;">✓ {{ reply.doctorName }}:</strong>
-                            <p style="margin: 6px 0 0 0;">{{ reply.message }}</p>
-                            <small style="color: #6c757d;">{{ reply.repliedAt.strftime('%Y-%m-%d %H:%M') if reply.repliedAt else '' }}</small>
-                        </div>
-                        {% endfor %}
-                    {% endif %}
-                    
-                    {% if not has_response %}
-                    <div class="response-form">
-                        <form method="POST" action="{{ url_for('respond_to_query', query_id=query._id) }}">
-                            <textarea name="response" placeholder="Type your response here..." required></textarea>
-                            <button type="submit">Send Response</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            {% else %}
-                <p style="color: #6c757d;"><em>No queries from this patient yet.</em></p>
-            {% endif %}
-        </div>
-
-        <hr style="margin: 30px 0;">
-
-        <h2>Nutrition Plan</h2>
+        <h2>🍽️ Nutrition Plan</h2>
 
         <form method="POST">
-            
-            <div class="form-group" style="margin-bottom: 20px;">
-                <label for="plan_title">Plan Title</label>
-                <input type="text" id="plan_title" name="plan_title" value="{{ plan.get('title') if plan else '' }}">
+            <div style="margin-bottom: 2rem;">
+                <label for="plan_title" style="font-weight: 600; color: #4a5568; display: block; margin-bottom: 0.5rem;">Plan Title</label>
+                <input type="text" id="plan_title" name="plan_title" value="{{ plan.get('title') if plan else '' }}" placeholder="e.g., Second Trimester Plan">
             </div>
 
             <div class="meal-section">
-                <h3>Breakfast</h3>
+                <h3>🌅 Breakfast</h3>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="breakfast-kcal">Calories (kcal)</label>
@@ -174,7 +420,7 @@
             </div>
 
             <div class="meal-section">
-                <h3>Lunch</h3>
+                <h3>☀️ Lunch</h3>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="lunch-kcal">Calories (kcal)</label>
@@ -224,7 +470,7 @@
             </div>
 
             <div class="meal-section">
-                <h3>Dinner</h3>
+                <h3>🌙 Dinner</h3>
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="dinner-kcal">Calories (kcal)</label>
@@ -273,11 +519,12 @@
                 </div>
             </div>
 
-            <button type="submit">Save Plan</button>
+            <button type="submit">💾 Save Plan</button>
         </form>
     </div>
 
     <script>
+        // eslint-disable-next-line
         const PRESETS = {{ presets | safe }};
     </script>
     <script src="{{ url_for('static', filename='js/doctor_form.js') }}"></script>
