@@ -349,17 +349,21 @@ function renderQueries(queries) {
 
         // Display Doctor/Admin Response
         if (query.response) {
+            // NOTE: The "response" field is a single string and doesn't contain doctorName in your query schema.
+            // If you use this field, it will continue to say "Doctor Response".
             queryHtml += `
                 <div class="query-response-asha">
                     <strong>Doctor Response:</strong> ${query.response}
                 </div>
             `;
         } else if (query.replies && query.replies.length > 0) {
-            // Assuming only one main response for simplicity, similar to doctor_profile.html structure
+            // *** THIS IS THE PRIMARY FIX ***
             const latestReply = query.replies[query.replies.length - 1]; 
+            const doctorName = latestReply.doctorName || 'Doctor'; // Safely get the name
+            
             queryHtml += `
                 <div class="query-response-asha">
-                    <strong>${latestReply.doctorName} Response:</strong> ${latestReply.message}
+                    <strong>${doctorName} Response:</strong> ${latestReply.message}
                 </div>
             `;
         }

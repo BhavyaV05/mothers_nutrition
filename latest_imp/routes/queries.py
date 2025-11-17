@@ -32,6 +32,26 @@ def serialize_query(query):
                     reply['repliedAt'] = reply['repliedAt'].isoformat()
     return query
 
+def fetch_queries_for_mother_backend(mother_id):
+    """
+    Fetches and serializes all queries for a given mother ID.
+    Used by backend routes like api_asha_mother_details.
+    """
+    try:
+        mother_obj_id = ObjectId(mother_id)
+    except Exception:
+        return []
+
+    query_filter = {"motherId": mother_obj_id}
+    
+    # Fetch all queries, sorted by creation date
+    queries = list(queries_col.find(query_filter).sort("createdAt", -1))
+    
+    # Serialize results to convert ObjectIds/datetimes to strings
+    for query in queries:
+        serialize_query(query)
+        
+    return queries
 # ============================================
 # MOTHER ENDPOINTS
 # ============================================
