@@ -12,7 +12,7 @@ def analyze_image_dummy(image_path):
         },
         {
             "dish_name": "Instant Coffee",
-            "kcal": 23.16, "carb_g": 3.65, "protein_g": 0.64, "fat_g": 0.75,
+            "kcal": 100 , "carb_g": 80, "protein_g": 0.64, "fat_g": 0.75,
             "free_sugar_g": 3.62, "fibre_g": 0, "sodium_mg": 4.92, 
             "calcium_mg": 20.87, "iron_mg": 0.06, "vitamin_c_mg": 1.51, "folate_ug": 5.6
         },

@@ -3,10 +3,11 @@ import os
 import numpy as np
 import pandas as pd
 import csv
+import random
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics.pairwise import cosine_similarity
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from utils.nutrient_mapper import deficits_to_text_query
 # --- NEW: Import Google Custom Search API ---
@@ -98,6 +99,91 @@ def parse_deficiency(text: str):
         if f"avoid {key}" in text or f"high in {key}" in text:
             vec[col] = -1
     return vec
+
+# ----------------------------------------------------------------
+# Helper Functions for Variety & Diversity
+# ----------------------------------------------------------------
+def get_recent_recommendations(mother_id, days=2, limit=5):
+    """
+    Fetch recent recommendations for a mother from MongoDB.
+    Returns a list of dish names recommended in the last N days.
+    """
+    if collection is None:
+        return []
+    
+    try:
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        
+        # Find recent recommendations for this mother
+        recent_recs = collection.find({
+            "user_profile.mother_id": mother_id,
+            "created_at": {"$gte": cutoff_date}
+        }).sort("created_at", -1).limit(limit)
+        
+        # Extract dish names from recommended meals
+        recent_dishes = []
+        for rec in recent_recs:
+            if "recommended_meals" in rec:
+                for meal in rec["recommended_meals"]:
+                    dish_name = meal.get("Dish Name")
+                    if dish_name:
+                        recent_dishes.append(dish_name)
+        
+        return recent_dishes
+    except Exception as e:
+        print(f"Error fetching recent recommendations: {e}")
+        return []
+
+def select_diverse_meal(top_meals, recent_dishes, top_n=5):
+    """
+    Select a meal from top candidates, ensuring variety.
+    
+    Strategy:
+    1. Get top N high-scoring meals
+    2. Exclude recently recommended dishes
+    3. Use weighted random selection (higher scores = higher probability)
+    
+    Args:
+        top_meals: DataFrame of meals sorted by score
+        recent_dishes: List of recently recommended dish names
+        top_n: Number of top candidates to consider
+    
+    Returns:
+        Selected meal row as dict
+    """
+    if top_meals.empty:
+        return None
+    
+    # Get top N candidates
+    candidates = top_meals.head(top_n)
+    
+    # Filter out recent dishes for variety
+    if recent_dishes:
+        candidates = candidates[~candidates["Dish Name"].isin(recent_dishes)]
+    
+    # If all top candidates were recent, fall back to original top meals
+    if candidates.empty:
+        print("[Variety] All top candidates were recently recommended. Using fallback.")
+        candidates = top_meals.head(top_n)
+    
+    # Use weighted random selection based on scores
+    # Higher scores get proportionally higher selection probability
+    scores = candidates["final_score"].values
+    
+    # Normalize scores to probabilities (softmax-like approach)
+    # Add small epsilon to avoid division by zero
+    exp_scores = np.exp(scores - np.max(scores))  # Numerical stability
+    probabilities = exp_scores / np.sum(exp_scores)
+    
+    # Randomly select based on weighted probabilities
+    selected_idx = np.random.choice(len(candidates), p=probabilities)
+    selected_meal = candidates.iloc[selected_idx]
+    
+    print(f"[Variety] Selected: {selected_meal['Dish Name']} (score: {selected_meal['final_score']:.3f})")
+    print(f"[Variety] Avoided recent dishes: {recent_dishes[:3]}..." if len(recent_dishes) > 3 else f"[Variety] Recent dishes: {recent_dishes}")
+    
+    return selected_meal.to_dict()
+
 def recommend_from_deficits(deficits: dict, profile: dict, top_n=1):
     """
     New adapter function to generate recommendations from a
@@ -303,18 +389,71 @@ def generate_recommendations(deficiency_text, profile, top_n=5):
         return {"error": "No safe meals found, even after relaxing region, income, and cuisine filters. The basic constraints (Diet Type or Allergies) are too restrictive for the nutrient goals."}
 
     # --- Continue with sorting and output using the best matches found (from Pass 1 or Pass 2) ---
-    df_filtered["final_score"] = df_filtered["nutrient_score"] 
-    top_meals = df_filtered.sort_values("final_score", ascending=False).head(top_n)
-
+    # Apply cuisine and income preference boosts to final score
+    def apply_preference_boosts(row):
+        base_score = row["nutrient_score"]
+        boosted_score = base_score
+        
+        # Cuisine preference boost (15%)
+        cuisine_pref = profile.get("cuisine_pref", "").lower()
+        if cuisine_pref and cuisine_pref in str(row["cuisine"]).lower():
+            boosted_score *= 1.15
+        
+        # Income range boost (10%)
+        income_range = profile.get("income_range", "")
+        if income_range and any(rng in str(row["income_range"]) for rng in income_range.split(",")):
+            boosted_score *= 1.10
+        
+        # State/regional preference boost (5%)
+        state = profile.get("state", "")
+        if state and (state in str(row["states"]) or "All Indian States" in str(row["states"])):
+            boosted_score *= 1.05
+        
+        if boosted_score != base_score:
+            print(f"[Boost] {row['Dish Name']}: {base_score:.3f} → {boosted_score:.3f}")
+        
+        return boosted_score
+    
+    df_filtered = df_filtered.copy()  # Avoid SettingWithCopyWarning
+    df_filtered["final_score"] = df_filtered.apply(apply_preference_boosts, axis=1)
+    df_filtered = df_filtered.sort_values("final_score", ascending=False)
+    
+    # --- NEW: Apply Diversity Logic ---
+    mother_id = profile.get("mother_id")
+    
+    if mother_id:
+        # Get recent recommendations to avoid repetition
+        recent_dishes = get_recent_recommendations(mother_id, days=2, limit=5)
+        print(f"[Variety] Recent dishes for mother {mother_id}: {recent_dishes}")
+        
+        # Select diverse meal using weighted random selection
+        selected_meal = select_diverse_meal(df_filtered, recent_dishes, top_n=5)
+        
+        if selected_meal:
+            # Convert single selection to list format for consistency
+            recommended_meals = [selected_meal]
+        else:
+            # Fallback: use traditional top 1
+            recommended_meals = df_filtered.head(1).to_dict(orient="records")
+    else:
+        # No mother_id provided, use traditional approach
+        print("[Variety] No mother_id in profile. Using traditional top-N selection.")
+        recommended_meals = df_filtered.head(top_n).to_dict(orient="records")
+    
     output_columns = [
         "Dish Name", "states", "diet_type", "cuisine", 
         "allergens", "income_range", "final_score"
     ]
     
+    # Ensure output columns are present
+    for meal in recommended_meals:
+        meal_filtered = {k: meal[k] for k in output_columns if k in meal}
+        recommended_meals[recommended_meals.index(meal)] = meal_filtered
+    
     result = {
         "deficiencies": [k for k, v in parse_deficiency(deficiency_text).items() if v == 1],
         "avoidances": [k for k, v in parse_deficiency(deficiency_text).items() if v == -1],
-        "recommended_meals": top_meals[output_columns].to_dict(orient="records"),
+        "recommended_meals": recommended_meals,
         "summary": "Recommended meals tailored to nutrient deficiencies and the mother's context."
     }
 

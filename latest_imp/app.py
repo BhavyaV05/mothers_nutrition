@@ -535,6 +535,7 @@ def upload_meal():
             
             # Build the profile your recommender needs
             profile_for_recommender = {
+                "mother_id": mother_id,  # NEW: Add mother_id for tracking recommendations
                 "state": mother_doc.get("location_state", ""),
                 "area": mother_doc.get("location_area_type", "both"),
                 "income_range": mother_doc.get("income_range", ""),
