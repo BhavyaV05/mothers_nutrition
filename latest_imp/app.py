@@ -661,7 +661,7 @@ def upload_meal():
                 meal_recommendation["reason"] = f"Your last meal was a bit low on some nutrients."
                 print(f"Recommendation generated: {meal_recommendation['Dish Name']}")
             doctor_id = mother_doc.get("assigned_doctor_id")
-            asha_worker_id = mother_doc.get("assigned_asha_worker_id")
+            asha_worker_id = mother_doc.get("ashaId")
             mother_name = mother_doc.get("name", "a patient")
 
             # 2. Create the URL for the new report page
