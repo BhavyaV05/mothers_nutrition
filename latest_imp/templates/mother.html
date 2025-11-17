@@ -2,6 +2,7 @@
 {% block content %}
 
 <style>
+    /* ... (CSS styles remain the same) ... */
     .recommendation-card {
         background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
         border: 2px solid #667eea30;
@@ -251,13 +252,24 @@
     {% endif %}
 </div>
 
-<div class="info-card">
-    <h3>👨‍⚕️ Your Assigned Doctor</h3>
-    <div id="doctorDetails"><em>Checking assignment...</em></div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="info-card">
+            <h3>👨‍⚕️ Your Assigned Doctor</h3>
+            <div id="doctorDetails"><em>Checking assignment...</em></div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="info-card">
+            <h3>🤝 Your ASHA Worker</h3>
+            <div id="ashaWorkerDetails"><em>Checking assignment...</em></div>
+        </div>
+    </div>
 </div>
-<input type="hidden" id="assignedDoctorId" value="{{ assigned_doctor_id }}" />
 
-<div class="card">
+<input type="hidden" id="assignedDoctorId" value="{{ assigned_doctor_id }}" />
+<input type="hidden" id="assignedAshaId" value="{{ assigned_asha_id }}" /> <div class="card">
     <h2>📸 Upload Meal Photo</h2>
     <p style="color: #718096; margin-bottom: 1.5rem;">Upload your meal photo, select the meal type and date. The system will analyze your meal and update your recommendation.</p>
 
@@ -299,6 +311,7 @@ function getMotherId() {
     return document.getElementById("motherId").value.trim();
 }
 
+// Function to load Doctor Details (already exists)
 async function loadDoctorDetails() {
     const doctorId = document.getElementById("assignedDoctorId").value.trim();
     const detailsDiv = document.getElementById("doctorDetails");
@@ -324,6 +337,35 @@ async function loadDoctorDetails() {
         detailsDiv.innerHTML = `<em>Failed to load doctor information.</em>`;
     }
 }
+
+// NEW: Function to load ASHA Worker Details
+async function loadAshaWorkerDetails() {
+    const ashaId = document.getElementById("assignedAshaId").value.trim();
+    const detailsDiv = document.getElementById("ashaWorkerDetails");
+    
+    if (!ashaId || ashaId === 'None') {
+        detailsDiv.innerHTML = "<em>You have not been assigned an ASHA worker yet.</em>";
+        return;
+    }
+    try {
+        // Assuming an API endpoint exists for fetching ASHA worker details by ID
+        const res = await fetch(`/api/asha/${ashaId}`); 
+        const asha = await res.json();
+        if (res.ok) {
+            detailsDiv.innerHTML = `
+                <p style="margin: 0;">
+                    <strong style="color: #2c3e50;">${asha.name || 'Name not available'}</strong><br>
+                    <span style="color: #718096;">Email: ${asha.email || 'N/A'}</span>
+                </p>
+            `;
+        } else {
+            detailsDiv.innerHTML = `<em>Error: Could not find ASHA worker details.</em>`;
+        }
+    } catch (err) {
+        detailsDiv.innerHTML = `<em>Failed to load ASHA worker information.</em>`;
+    }
+}
+
 
 async function loadMealHistory() {
     const motherId = getMotherId();
@@ -424,6 +466,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
 window.addEventListener("load", () => {
     loadMealHistory();
     loadDoctorDetails();
+    loadAshaWorkerDetails(); // NEW: Call to load ASHA details
 });
 </script>
 

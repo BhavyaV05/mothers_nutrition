@@ -2,6 +2,7 @@
 {% block content %}
 
 <style>
+    /* Inherit base styles from the original asha.html style block */
     .dashboard-header {
         background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
         border: 2px solid #667eea30;
@@ -109,6 +110,62 @@
         color: #718096;
         font-style: italic;
     }
+
+    /* New styles for Queries Section */
+    .queries-list {
+        margin-top: 1rem;
+        padding: 0;
+        list-style: none;
+    }
+
+    .query-item-asha {
+        background: #ffffff;
+        border-left: 4px solid #667eea;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .query-item-asha strong {
+        color: #667eea;
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+
+    .query-response-asha {
+        background: #e6f7ff;
+        border-left: 3px solid #48bb78;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        border-radius: 6px;
+        font-size: 0.9em;
+    }
+    
+    .query-response-asha strong {
+        color: #48bb78;
+        display: inline;
+    }
+
+    .status-open, .status-answered {
+        padding: 0.2rem 0.6rem;
+        border-radius: 10px;
+        font-size: 0.7em;
+        font-weight: 700;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-left: 10px;
+    }
+    
+    .status-open { 
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-answered { 
+        background: #d1fae5;
+        color: #065f46;
+    }
 </style>
 
 <div class="dashboard-header">
@@ -122,6 +179,56 @@
 </div>
 
 <script>
+/**
+ * Helper function to render the query section HTML
+ */
+function renderQueries(queries) {
+    if (!queries || queries.length === 0) {
+        return "<em style='color: #718096;'>No patient queries.</em>";
+    }
+
+    let queryHtml = '<div class="queries-list">';
+    for (const query of queries) {
+        const hasResponse = query.response || (query.replies && query.replies.length > 0);
+        const statusClass = hasResponse ? 'status-answered' : 'status-open';
+        const statusText = hasResponse ? 'ANSWERED' : 'OPEN';
+
+        queryHtml += `
+            <div class="query-item-asha">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>${query.subject}</strong>
+                    <span class="${statusClass}">${statusText}</span>
+                </div>
+                <p style="margin: 0.5rem 0 0.25rem 0; color: #4a5568; font-size: 0.9em;">${query.message}</p>
+                <small style="color: #718096; font-size: 0.75em;">${query.createdAt ? new Date(query.createdAt).toLocaleDateString() : 'N/A'}</small>
+        `;
+
+        // Display Doctor/Admin Response
+        if (query.response) {
+            queryHtml += `
+                <div class="query-response-asha">
+                    <strong>Doctor Response:</strong> ${query.response}
+                </div>
+            `;
+        } else if (query.replies && query.replies.length > 0) {
+            // Assuming only one main response for simplicity, similar to doctor_profile.html structure
+            const latestReply = query.replies[query.replies.length - 1]; 
+            queryHtml += `
+                <div class="query-response-asha">
+                    <strong>${latestReply.doctorName} Response:</strong> ${latestReply.message}
+                </div>
+            `;
+        }
+
+        queryHtml += `</div>`;
+    }
+    queryHtml += '</div>';
+    return queryHtml;
+}
+
+/**
+ * Main function to load and render assigned mothers' details
+ */
 async function loadAssignedMothers(){
   const res = await fetch('/api/asha/mothers/{{ asha_id }}');
   const mothers = await res.json();
@@ -134,7 +241,11 @@ async function loadAssignedMothers(){
   let html = "";
 
   for (let m of mothers){
+    // Fetch mother details, which now includes queries in the response
     const details = await fetch(`/api/asha/mother_details/${m._id}`).then(r=>r.json());
+    
+    // Check if queries exist in the details object (assuming the backend API is updated to return them)
+    const queriesHtml = renderQueries(details.queries);
 
     html += `
       <div class="mother-card">
@@ -146,6 +257,9 @@ async function loadAssignedMothers(){
         <p><strong>Income:</strong> ${details.profile.income}</p>
         <p><strong>Diet:</strong> ${details.profile.diet}</p>
 
+        <h4>💬 Patient Queries</h4>
+        ${queriesHtml}
+        
         <h4>Doctor's Nutrition Plan</h4>
         ${
           details.plan && details.plan.required_nutrients

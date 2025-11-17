@@ -159,8 +159,7 @@ def signup():
                 "location_area_type": request.form.get("area_type"),
                 "income_range": request.form.get("income"),
                 "dietary_preference": request.form.get("diet"),
-
-                "ashaId": assigned_asha,
+                "ashaId": assigned_asha_str,
                 "assigned_doctor_id": assigned_doctor_id_str,
                 "cuisine_preference": request.form.get("cuisine_preference", ""),
                 
@@ -255,9 +254,14 @@ def mother_page():
     else:
         assigned_doc = str(assigned_doc)
 
-    return render_template("mother.html", mother_id=user_id, assigned_doctor_id=assigned_doc)
+    assigned_asha = mother.get("ashaId") or ""
+    print("Assigned ASHA ID:", assigned_asha) 
+    if assigned_asha is None:
+        assigned_asha = ""
+    else:
+        assigned_asha = str(assigned_asha)
 
-
+    return render_template("mother.html", mother_id=user_id, assigned_doctor_id=assigned_doc, assigned_asha_id=assigned_asha)
 
 
 # -------------------------------------------------
@@ -401,7 +405,32 @@ def get_doctor_details(doctor_id):
     except Exception:
         return jsonify({"error": "Invalid Doctor ID"}), 400
     
+# In app.py
 
+# In app.py
+
+# In app.py
+@app.route("/api/asha/<asha_id>", methods=["GET"])
+def get_asha_details(asha_id):
+    try:
+        from bson.objectid import ObjectId
+        
+        asha = users_col.find_one(
+            {"_id": ObjectId(asha_id), "role": "asha"}
+        )
+        
+        if asha:
+            response_data = {
+                "name": asha.get("name", "ASHA Worker"),
+                "email": asha.get("email", "N/A"), 
+            }
+            return jsonify(response_data)
+        
+        return jsonify({"error": "ASHA worker not found or invalid role"}), 404
+    
+    except Exception as e:
+        print(f"Error fetching ASHA details: {e}")
+        return jsonify({"error": "Invalid ASHA ID format"}), 400
 
 @app.route("/query", methods=["GET", "POST"])
 def query_page():
