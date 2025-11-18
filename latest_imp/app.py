@@ -51,6 +51,24 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 app.config["SECRET_KEY"] = SECRET_KEY
 
 
+def _ensure_plan_required_nutrients_is_mapping(plan):
+    """If plan['required_nutrients'] is a JSON/string, try to deserialize it into a Python mapping."""
+    if not plan:
+        return plan
+    rn = plan.get("required_nutrients")
+    if isinstance(rn, str):
+        try:
+            plan["required_nutrients"] = json.loads(rn)
+        except Exception:
+            try:
+                import ast
+                plan["required_nutrients"] = ast.literal_eval(rn)
+            except Exception:
+                # leave as-is; template has fallback
+                pass
+    return plan
+
+
 # -------------------------------------------------
 # Helper: Assign random ASHA worker to a mother
 # -------------------------------------------------
@@ -129,6 +147,10 @@ def generate_mother_report(mother_id):
     today = datetime.now().strftime("%Y-%m-%d")
     plan = get_active_plan_for_mother_and_date(mother_id, today)
     alerts = get_active_alerts(mother_id)
+    plan = _ensure_plan_required_nutrients_is_mapping(plan)
+
+    # Normalize plan.required_nutrients to a mapping when possible
+    plan = _ensure_plan_required_nutrients_is_mapping(plan)
     
     return render_template("report.html",
                            mother=mother,
@@ -371,6 +393,7 @@ def asha_patient_profile(mother_id):
     today = datetime.now().strftime("%Y-%m-%d")
 
     plan = get_active_plan_for_mother_and_date(mother_id, today)
+    plan = _ensure_plan_required_nutrients_is_mapping(plan)
     alerts = get_active_alerts(mother_id)
 
     # FIX: Pull all queries for this mother directly from DB
@@ -464,6 +487,7 @@ def doctor_patient_profile(mother_id):
     # === GET Request: Show the form (no change needed here) ===
     today = datetime.now().strftime("%Y-%m-%d")
     active_plan = get_active_plan_for_mother_and_date(mother_id, today)
+    active_plan = _ensure_plan_required_nutrients_is_mapping(active_plan)
     
     # Fetch queries for this mother assigned to current doctor
     from models import db
@@ -613,6 +637,7 @@ def upload_meal():
 
     # --- 4. START: Alert & Recommendation Logic ---
     plan = get_active_plan_for_mother_and_date(mother_id, meal_date)
+    plan = _ensure_plan_required_nutrients_is_mapping(plan)
     alert_info = None
     meal_recommendation = None # This is what we will show the mother
 
@@ -841,6 +866,7 @@ def get_remaining_nutrients(mother_id):
     today = datetime.now().strftime("%Y-%m-%d")
 
     plan = get_active_plan_for_mother_and_date(mother_id, today)
+    plan = _ensure_plan_required_nutrients_is_mapping(plan)
     if not plan or not plan.get("required_nutrients"):
         return jsonify({"error": "No active plan found for today"}), 404
 
@@ -958,6 +984,7 @@ def api_asha_mother_details(mother_id):
     # Today's plan
     today = datetime.now().strftime("%Y-%m-%d")
     plan = get_active_plan_for_mother_and_date(mother_id, today)
+    plan = _ensure_plan_required_nutrients_is_mapping(plan)
     if plan:
         plan["_id"] = str(plan["_id"])
     details["plan"] = plan or {}

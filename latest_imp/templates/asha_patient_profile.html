@@ -234,6 +234,72 @@
         border-radius: 10px;
         border: 2px dashed #cbd5e0;
     }
+    .plan-totals-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+    .total-item {
+        background: #f8f9ff;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 2px solid #e0e7ff;
+    }
+    .total-item strong {
+        display: block;
+        color: #667eea;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .total-item-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        line-height: 1.2;
+    }
+    .meal-plan-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+    .meal-plan-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .meal-plan-card h5 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #764ba2;
+        margin-top: 0;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #f0f2ff;
+    }
+    .meal-nutrient-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        padding: 0.4rem 0;
+        color: #4a5568;
+        border-bottom: 1px solid #f0f2ff;
+    }
+    .meal-nutrient-item:last-child {
+        border-bottom: none;
+    }
+    .meal-nutrient-item span:first-child {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    .meal-nutrient-item span:last-child {
+        font-weight: 600;
+        color: #667eea;
+    }
 </style>
 
 <div class="container">
@@ -303,21 +369,72 @@
         {% endif %}
         
 <h4>🥗 Doctor's Nutrition Plan</h4>
-{% if plan and plan.required_nutrients %}
-    <div class="nutrition-plan">
-        <div class="nutrient-grid">
-        {% if plan.required_nutrients is mapping %}
-            {% for nutrient, value in plan.required_nutrients.items() %}
-            <div class="nutrient-item">
-                <strong>{{ nutrient|replace('_', ' ')|title }}</strong>
-                <span class="nutrient-value">{{ value }}</span>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="empty-state">Unable to parse nutrition data</div>
+{% if plan and plan.required_nutrients and plan.required_nutrients is mapping %}
+
+    {# --- 1. First, we calculate the key daily totals --- #}
+    {% set totals = namespace(kcal=0, protein_g=0, carb_g=0, fat_g=0, iron_mg=0, folate_ug=0) %}
+    {% for meal_type, nutrients in plan.required_nutrients.items() %}
+        {% if nutrients is mapping %}
+            {% set totals.kcal = totals.kcal + (nutrients.get('kcal', 0) | float) %}
+            {% set totals.protein_g = totals.protein_g + (nutrients.get('protein_g', 0) | float) %}
+            {% set totals.carb_g = totals.carb_g + (nutrients.get('carb_g', 0) | float) %}
+            {% set totals.fat_g = totals.fat_g + (nutrients.get('fat_g', 0) | float) %}
+            {% set totals.iron_mg = totals.iron_mg + (nutrients.get('iron_mg', 0) | float) %}
+            {% set totals.folate_ug = totals.folate_ug + (nutrients.get('folate_ug', 0) | float) %}
         {% endif %}
+    {% endfor %}
+
+    <h5 style="color: #667eea; font-weight: 700; font-size: 1rem; text-transform: uppercase;">Key Daily Totals</h5>
+    <div class="plan-totals-grid">
+        <div class="total-item">
+            <strong>Total Calories</strong>
+            <div class="total-item-value">{{ totals.kcal | round(1) }} <span style="font-size: 1rem; color: #718096;">kcal</span></div>
+        </div>
+        <div class="total-item">
+            <strong>Total Protein</strong>
+            <div class="total-item-value">{{ totals.protein_g | round(1) }} <span style="font-size: 1rem; color: #718096;">g</span></div>
+        </div>
+        <div class="total-item">
+            <strong>Total Carbs</strong>
+            <div class="total-item-value">{{ totals.carb_g | round(1) }} <span style="font-size: 1rem; color: #718096;">g</span></div>
+        </div>
+        <div class="total-item">
+            <strong>Total Fat</strong>
+            <div class="total-item-value">{{ totals.fat_g | round(1) }} <span style="font-size: 1rem; color: #718096;">g</span></div>
+        </div>
+        <div class="total-item">
+            <strong>Total Iron</strong>
+            <div class="total-item-value">{{ totals.iron_mg | round(1) }} <span style="font-size: 1rem; color: #718096;">mg</span></div>
+        </div>
+        <div class="total-item">
+            <strong>Total Folate</strong>
+            <div class="total-item-value">{{ totals.folate_ug | round(1) }} <span style="font-size: 1rem; color: #718096;">µg</span></div>
         </div>
     </div>
+    
+    <h5 style="color: #667eea; font-weight: 700; font-size: 1rem; text-transform: uppercase; margin-top: 2rem;">Meal-by-Meal Breakdown</h5>
+    <div class="meal-plan-grid">
+        {% for meal_type, nutrients in plan.required_nutrients.items() %}
+        <div class="meal-plan-card">
+            <h5>{{ meal_type | title }}</h5>
+            <div class="meal-plan-nutrients">
+                {% if nutrients is mapping %}
+                    {% for key, value in nutrients.items() %}
+                        {% if value > 0 %}
+                            <div class="meal-nutrient-item">
+                                <span>{{ key | replace('_', ' ') | title | replace(' G', ' g') | replace(' Mg', ' mg') | replace(' Ug', ' µg') }}</span>
+                                <span>{{ value | round(1) }}</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state" style="padding: 1rem; font-size: 0.9rem;">No data for this meal.</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
 {% else %}
     <div class="empty-state">
         📋 No active nutrition plan found
