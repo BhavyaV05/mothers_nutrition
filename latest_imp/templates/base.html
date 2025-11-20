@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+  <style>
       * {
         margin: 0;
         padding: 0;
@@ -92,6 +92,14 @@
         margin: 2rem auto;
         padding: 0 1.5rem;
       }
+
+      /* Utility container used by many templates */
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
       
       .card { 
         background: white;
@@ -100,6 +108,13 @@
         box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
         border: 1px solid rgba(102, 126, 234, 0.1);
+      }
+
+      /* Make images and media scale nicely on mobile */
+      img, video {
+        max-width: 100%;
+        height: auto;
+        display: block;
       }
       
       .card h2 {
@@ -155,6 +170,11 @@
         transition: all 0.3s ease;
         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
       }
+
+      /* Make form buttons full-width on narrow screens for easier tapping */
+      @media (max-width: 420px) {
+        button { width: 100%; padding: 0.9rem 1rem; }
+      }
       
       button:hover {
         transform: translateY(-2px);
@@ -189,6 +209,18 @@
         h1 {
           font-size: 1.5rem;
         }
+      }
+
+      /* Extra small screens adjustments */
+      @media (max-width: 420px) {
+        main { margin: 1rem auto; padding: 0 0.75rem; }
+        .card { padding: 1rem; border-radius: 12px; }
+        .card h2 { font-size: 1.25rem; }
+        .card h3 { font-size: 1.05rem; }
+        label { font-size: 0.85rem; }
+        input, textarea, select { padding: 0.6rem 0.75rem; font-size: 0.95rem; }
+        .nav-links { flex-direction: column; gap: 0.5rem; width: 100%; }
+        .logout-link { width: 100%; text-align: center; padding: 0.75rem; }
       }
     </style>
   </head>
