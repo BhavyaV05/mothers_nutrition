@@ -14,8 +14,6 @@ db = client.get_default_database()
 queries_col = db.get_collection("queries")
 
 queries_bp = Blueprint('queries', __name__)
-
-# Helper function to serialize MongoDB documents
 def serialize_query(query):
     """Convert MongoDB query document to JSON-serializable format"""
     if query:

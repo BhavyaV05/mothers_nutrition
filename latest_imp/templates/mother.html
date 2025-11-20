@@ -231,6 +231,13 @@
     #mealHistory {
         min-height: 100px;
     }
+    /* Small responsive tweaks */
+    @media (max-width: 768px) {
+        .recommendation-card, .info-card, .meal-item, .modal-content { padding: 1rem; }
+        .floating-btn { width: 56px; height: 56px; right: 16px; bottom: 16px; }
+        .recommendation-card a { display: block; width: 100%; text-align: center; }
+        #queryModal textarea { min-height: 100px; }
+    }
 </style>
 
 <h2 style="color: #667eea; margin-bottom: 1.5rem;">Your Daily Recommendation</h2>
