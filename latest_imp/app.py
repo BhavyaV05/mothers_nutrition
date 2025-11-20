@@ -1,5 +1,5 @@
 import os
-
+from datetime import date
 
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for,session,flash
@@ -603,7 +603,7 @@ def query_page():
 def upload_meal():
     mother_id = session.get("user_id") or request.form.get("motherId")
     meal_type = request.form.get("mealType", "unknown").lower()
-    meal_date = request.form.get("mealDate")
+    meal_date = date.today().isoformat()
     img = request.files.get("image")
 
     if not mother_id or not img:
